@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Beach Spike — First Person</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0820;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'M PLUS Rounded 1c',sans-serif;overflow:hidden}
+#root{width:860px;height:580px;position:relative;overflow:hidden;border-radius:10px;box-shadow:0 0 80px rgba(180,80,255,0.4)}
+.scr{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:2}
+.scr.on{display:flex}
+#s-title{background:linear-gradient(160deg,#1a0640,#ff3d6b 60%,#ff9a3c)}
+.title-txt{font-family:'Bangers',cursive;font-size:76px;color:#fff;letter-spacing:7px;text-shadow:4px 4px 0 #900,10px 10px 24px rgba(0,0,0,0.5);line-height:1;z-index:1}
+.title-sub{font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:5px;margin-bottom:36px;z-index:1}
+.btn{font-family:'Bangers',cursive;font-size:22px;letter-spacing:3px;background:#fff;color:#ff3d6b;border:none;padding:13px 44px;border-radius:50px;cursor:pointer;box-shadow:0 6px 0 #c02060,0 8px 20px rgba(0,0,0,0.3);transition:transform .1s,box-shadow .1s;margin:5px;z-index:1;position:relative}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 #c02060}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c02060}
+.btn.b2{color:#0055cc}
+.hint{font-size:9px;color:rgba(255,255,255,0.55);text-align:center;line-height:2.4;z-index:1;position:relative;margin-top:14px;max-width:520px}
+#s-game{z-index:0;padding:0}
+#canvas{display:block}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;pointer-events:none;z-index:5;background:linear-gradient(180deg,rgba(0,0,0,0.55),transparent)}
+.hs{display:flex;flex-direction:column;align-items:center}
+.hn{font-family:'Bangers',cursive;font-size:13px;color:rgba(255,255,255,0.85);letter-spacing:2px}
+.hsc{font-family:'Bangers',cursive;font-size:36px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
+.hsets{font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1px}
+.hmid{display:flex;flex-direction:column;align-items:center}
+.hsetl{font-size:8px;color:rgba(255,255,255,0.5);letter-spacing:2px}
+.hsetn{font-family:'Bangers',cursive;font-size:20px;color:#fff}
+
+/* Touch dots */
+#touch-disp{position:absolute;top:56px;left:50%;transform:translateX(-50%);display:flex;gap:7px;pointer-events:none;z-index:5}
+.td{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);background:transparent;transition:background .12s}
+.td.used{background:#f0d060;border-color:#f0d060}
+.td.warn{background:#ff4444;border-color:#ff4444}
+
+/* Crosshair */
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:6;opacity:0.7}
+
+/* Action buttons */
+#ctrl{position:absolute;bottom:10px;left:10px;display:flex;gap:5px;z-index:5}
+.cbtn{font-family:'Bangers',cursive;font-size:11px;letter-spacing:1px;padding:7px 10px;border:none;border-radius:6px;cursor:pointer;color:#fff;min-width:52px;text-align:center;box-shadow:0 3px 0 rgba(0,0,0,0.4);transition:transform .08s;user-select:none;-webkit-user-select:none}
+.cbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.4)}
+.cb-bump{background:#2288cc}.cb-set{background:#22aa55}.cb-spike{background:#dd2255}
+.cb-jump{background:#886600}.cb-move{background:#444466;font-size:16px;padding:6px 10px}
+.cb-serve{background:#cc6600}
+
+/* Jump meter */
+#jump-meter{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;z-index:5}
+.jm-label{font-size:8px;color:rgba(255,255,255,0.6);letter-spacing:1px}
+.jm-track{width:60px;height:7px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.3);border-radius:4px;overflow:hidden}
+.jm-fill{height:100%;background:linear-gradient(90deg,#44aaff,#ff44aa);border-radius:4px;transition:width .05s}
+
+/* Serve prompt */
+#serve-prompt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:24px;color:#fff;letter-spacing:3px;text-align:center;pointer-events:none;z-index:6;text-shadow:2px 2px 0 rgba(0,0,0,0.5);background:rgba(0,0,0,0.55);padding:10px 26px;border-radius:8px;display:none}
+
+/* Announce */
+#announce{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:54px;letter-spacing:5px;color:#fff;text-shadow:3px 3px 0 #ff3d6b;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:8}
+#announce.show{opacity:1}
+#sub-ann{position:absolute;top:56%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:22px;letter-spacing:3px;color:#ffe060;text-shadow:2px 2px 0 rgba(0,0,0,0.6);pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:8}
+#sub-ann.show{opacity:1}
+#fault-msg{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:30px;color:#ff4444;letter-spacing:3px;pointer-events:none;opacity:0;transition:opacity .1s;z-index:8;text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
+#fault-msg.show{opacity:1}
+
+/* Ball indicator arrow (when ball behind camera) */
+#ball-arrow{position:absolute;pointer-events:none;z-index:6;font-size:22px;display:none}
+
+#s-over{background:rgba(8,4,20,0.92);backdrop-filter:blur(8px)}
+.ov-t{font-family:'Bangers',cursive;font-size:60px;color:#fff;letter-spacing:4px;text-shadow:3px 3px 0 #ff2266;margin-bottom:6px}
+.ov-s{font-size:12px;color:rgba(255,255,255,0.6);letter-spacing:3px;margin-bottom:28px}
+/* SETTINGS */
+#s-settings{background:linear-gradient(160deg,#1a0640,#1a1a40 60%,#0a0a28)}
+.sett-title{font-family:'Bangers',cursive;font-size:48px;color:#fff;letter-spacing:5px;text-shadow:3px 3px 0 #ff2266;margin-bottom:6px;z-index:1}
+.sett-sub{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:3px;margin-bottom:28px;z-index:1}
+.sett-section{font-family:'Bangers',cursive;font-size:14px;color:#f0d060;letter-spacing:3px;margin-bottom:12px;z-index:1}
+.pov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;z-index:1;position:relative;width:560px}
+.pov-card{background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.15);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .15s;position:relative}
+.pov-card:hover{border-color:#f0d060;background:rgba(255,255,255,0.12);transform:translateY(-2px)}
+.pov-card.selected{border-color:#ff2266;background:rgba(255,34,102,0.18);box-shadow:0 0 16px rgba(255,34,102,0.3)}
+.pov-card canvas{display:block;margin:0 auto 8px;border-radius:4px;image-rendering:pixelated}
+.pov-card-name{font-family:'Bangers',cursive;font-size:14px;color:#fff;letter-spacing:2px;margin-bottom:4px}
+.pov-card-desc{font-size:8px;color:rgba(255,255,255,0.5);line-height:1.8}
+.pov-check{position:absolute;top:8px;right:8px;font-size:14px;opacity:0}
+.pov-card.selected .pov-check{opacity:1}
+.sett-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;z-index:1;position:relative}
+.sett-label{font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:1px;width:120px}
+.sett-btns{display:flex;gap:6px}
+.sett-opt{font-family:'Bangers',cursive;font-size:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:4px;padding:5px 12px;cursor:pointer;letter-spacing:1px;transition:all .12s}
+.sett-opt:hover{border-color:#f0d060;color:#f0d060}
+.sett-opt.active{background:rgba(255,34,102,0.25);border-color:#ff2266;color:#fff}
+.btn-sml{font-family:'Bangers',cursive;font-size:14px;letter-spacing:2px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);padding:8px 20px;border-radius:6px;cursor:pointer;transition:all .12s;z-index:1;position:relative;margin:4px}
+.btn-sml:hover{border-color:#f0d060;color:#f0d060}
+</style>
+</head>
+<body>
+<div id="root">
+
+<div id="s-title" class="scr on">
+  <div class="title-txt">BEACH SPIKE</div>
+  <div class="title-sub" id="title-pov-lbl">FIRST PERSON · 2v2</div>
+  <button class="btn" onclick="startGame(false)">VS CPU</button>
+  <button class="btn b2" onclick="startGame(true)">2 PLAYER</button>
+  <button class="btn-sml" onclick="openSettings()" style="margin-top:8px">⚙ SETTINGS</button>
+  <div class="hint">
+    A/D strafe · W/S move · Space jump · J bump · K set · L spike
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="s-settings" class="scr">
+  <div class="sett-title">SETTINGS</div>
+  <div class="sett-sub">CHOOSE YOUR PERSPECTIVE</div>
+  <div class="sett-section">CAMERA POV</div>
+  <div class="pov-grid">
+    <div class="pov-card selected" id="pov-fp" onclick="setPov('fp')">
+      <span class="pov-check">✓</span>
+      <canvas width="120" height="70" id="pov-thumb-fp"></canvas>
+      <div class="pov-card-name">FIRST PERSON</div>
+      <div class="pov-card-desc">Your eyes.<br>Full immersion.<br>Mouse to look around.</div>
+    </div>
+    <div class="pov-card" id="pov-tp" onclick="setPov('tp')">
+      <span class="pov-check">✓</span>
+      <canvas width="120" height="70" id="pov-thumb-tp"></canvas>
+      <div class="pov-card-name">THIRD PERSON</div>
+      <div class="pov-card-desc">Behind your player.<br>See the whole court.<br>Classic view.</div>
+    </div>
+    <div class="pov-card" id="pov-tv" onclick="setPov('tv')">
+      <span class="pov-check">✓</span>
+      <canvas width="120" height="70" id="pov-thumb-tv"></canvas>
+      <div class="pov-card-name">BROADCAST</div>
+      <div class="pov-card-desc">Side angle view.<br>See full court.<br>TV-style camera.</div>
+    </div>
+  </div>
+  <div class="sett-section">OPTIONS</div>
+  <div class="sett-row">
+    <div class="sett-label">MOUSE SENS</div>
+    <div class="sett-btns">
+      <div class="sett-opt" id="sens-low" onclick="setSens('low')">LOW</div>
+      <div class="sett-opt active" id="sens-mid" onclick="setSens('mid')">MID</div>
+      <div class="sett-opt" id="sens-high" onclick="setSens('high')">HIGH</div>
+    </div>
+  </div>
+  <div class="sett-row">
+    <div class="sett-label">BALL SPEED</div>
+    <div class="sett-btns">
+      <div class="sett-opt active" id="spd-slow" onclick="setBallSpd('slow')">SLOW</div>
+      <div class="sett-opt" id="spd-med" onclick="setBallSpd('med')">MEDIUM</div>
+      <div class="sett-opt" id="spd-fast" onclick="setBallSpd('fast')">FAST</div>
+    </div>
+  </div>
+  <button class="btn" onclick="closeSettings()" style="margin-top:16px">BACK</button>
+</div>
+
+<div id="s-game" class="scr">
+  <canvas id="canvas" width="860" height="540"></canvas>
+
+  <div id="hud">
+    <div class="hs"><div class="hn" style="color:#ff88bb">TEAM SAKURA</div><div class="hsc" style="color:#ff2266" id="h-s1">0</div><div class="hsets" id="h-set1">Sets: 0</div></div>
+    <div class="hmid"><div class="hsetl">SET</div><div class="hsetn" id="h-set">1</div></div>
+    <div class="hs"><div class="hn" style="color:#88ccff">TEAM RYUU</div><div class="hsc" style="color:#0088ee" id="h-s2">0</div><div class="hsets" id="h-set2">Sets: 0</div></div>
+  </div>
+  <div id="touch-disp"><div class="td" id="td1"></div><div class="td" id="td2"></div><div class="td" id="td3"></div></div>
+  <svg id="crosshair" width="28" height="28"><line x1="14" y1="4" x2="14" y2="24" stroke="white" stroke-width="1.5" opacity="0.6"/><line x1="4" y1="14" x2="24" y2="14" stroke="white" stroke-width="1.5" opacity="0.6"/><circle cx="14" cy="14" r="4" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/></svg>
+  <div id="ball-hud" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:7;display:none;flex-direction:column;align-items:center">
+    <div id="ball-dir-up" style="font-size:18px;margin-bottom:30px;opacity:0">▲</div>
+    <div style="height:28px"></div>
+    <div id="ball-dir-down" style="font-size:18px;margin-top:30px;opacity:0">▼</div>
+  </div>
+  <div id="jump-meter"><div class="jm-label" id="jm-label">JUMP</div><div class="jm-track"><div class="jm-fill" id="jm-fill" style="width:0%"></div></div></div>
+  <div id="serve-prompt">SPACE to Serve</div>
+  <button id="leave-btn" onclick="leaveMatch()" style="position:absolute;top:8px;right:10px;font-family:'Bangers',cursive;font-size:11px;letter-spacing:2px;background:rgba(0,0,0,0.45);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);padding:5px 12px;border-radius:5px;cursor:pointer;z-index:9;transition:all .15s" onmouseover="this.style.borderColor='#ff4444';this.style.color='#ff4444'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)';this.style.color='rgba(255,255,255,0.6)'">✕ LEAVE</button>
+  <div id="announce"></div><div id="sub-ann"></div><div id="fault-msg"></div>
+  <div id="ball-arrow">🏐</div>
+  <div id="look-indicator" style="position:absolute;bottom:58px;right:12px;pointer-events:none;z-index:5;opacity:0.7">
+    <canvas id="look-compass" width="44" height="44"></canvas>
+  </div>
+  <div id="ctrl">
+    <button class="cbtn cb-move" onmousedown="kd('KeyA')" onmouseup="ku('KeyA')" ontouchstart="kd('KeyA')" ontouchend="ku('KeyA')">◀</button>
+    <button class="cbtn cb-move" onmousedown="kd('KeyW')" onmouseup="ku('KeyW')" ontouchstart="kd('KeyW')" ontouchend="ku('KeyW')">▲</button>
+    <button class="cbtn cb-move" onmousedown="kd('KeyS')" onmouseup="ku('KeyS')" ontouchstart="kd('KeyS')" ontouchend="ku('KeyS')">▼</button>
+    <button class="cbtn cb-move" onmousedown="kd('KeyD')" onmouseup="ku('KeyD')" ontouchstart="kd('KeyD')" ontouchend="ku('KeyD')">▶</button>
+    <button class="cbtn cb-jump" onmousedown="kd('Space')" onmouseup="ku('Space')" ontouchstart="kd('Space')" ontouchend="ku('Space')">JUMP</button>
+    <button class="cbtn cb-bump" onmousedown="kd('KeyZ')" onmouseup="ku('KeyZ')" ontouchstart="kd('KeyZ')" ontouchend="ku('KeyZ')">BUMP</button>
+    <button class="cbtn cb-set" onmousedown="kd('KeyX')" onmouseup="ku('KeyX')" ontouchstart="kd('KeyX')" ontouchend="ku('KeyX')">SET</button>
+    <button class="cbtn cb-spike" onmousedown="kd('KeyC')" onmouseup="ku('KeyC')" ontouchstart="kd('KeyC')" ontouchend="ku('KeyC')">SPIKE</button>
+    <button class="cbtn cb-serve" onmousedown="kd('Space')" onmouseup="ku('Space')" ontouchstart="kd('Space')" ontouchend="ku('Space')">SERVE</button>
+  </div>
+</div>
+
+<div id="s-over" class="scr">
+  <div class="ov-t" id="ov-title">TEAM WINS!</div>
+  <div class="ov-s" id="ov-sub">MATCH COMPLETE</div>
+  <button class="btn" onclick="restartGame()">PLAY AGAIN</button>
+  <button class="btn b2" onclick="goTitle()" style="background:rgba(255,255,255,0.12);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,0.3)">TITLE</button>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const CW = 860, CH = 540;
+
+// ── WORLD UNITS ──
+// X = left/right, Y = up, Z = depth (positive = our side, negative = opponent)
+const COURT_W = 14;   // half width — not too wide
+const COURT_D = 18;   // half depth per side
+const NET_H   = 4.8;  // net height — raised further
+const BALL_R  = 0.22;
+const GRAV    = 0.10; // world gravity per frame
+
+// ── FIRST-PERSON CAMERA ──
+// Camera is at player's eye level, looking toward the net
+// cam.x, cam.y (eye height), cam.z (depth position)
+const EYE_H   = 1.72; // standing eye height
+const FOV_H   = 80;   // horizontal FOV degrees — wider so net is more visible
+const FOCAL   = CW / (2 * Math.tan(FOV_H * Math.PI / 360)); // focal length px
+
+function project(wx, wy, wz, camX, camY, camZ, camObj) {
+  let co = camObj || {};
+  // Vector from camera to world point
+  let rx = wx - camX;
+  let ry = wy - camY;
+  let rz = wz - camZ;
+
+  let isFP = (typeof settings !== 'undefined') && settings.pov === 'fp';
+
+  if (isFP) {
+    let lookObj = (co && co.lookObj) ? co.lookObj : look;
+    let sw = (co && co.sw) ? co.sw : CW;   // viewport width
+    let sh = (co && co.sh) ? co.sh : CH;   // viewport height
+    let ox = (co && co.ox != null) ? co.ox : 0; // x offset
+    let oy = (co && co.oy != null) ? co.oy : 0; // y offset
+    let focal = sw / (2 * Math.tan(FOV_H * Math.PI / 360));
+    let yaw = lookObj.yaw;
+    let cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+    let rx2 =  rx * cosY + rz * sinY;
+    let rz2 = -rx * sinY + rz * cosY;
+    let pitch = lookObj.pitch;
+    let cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+    let ry2 = ry * cosP - rz2 * sinP;
+    let rz3 = ry * sinP + rz2 * cosP;
+    if (rz3 >= -0.05) return null;
+    let scale = focal / (-rz3);
+    return { x: ox + sw/2 + rx2*scale, y: oy + sh/2 - ry2*scale, scale, rz: rz3 };
+  }
+
+  // For tp/tv: use lookAt basis — forward, right, up vectors
+  // camObj has {fwd, right, up} unit vectors
+  if (co.fwd) {
+    let sw2 = (co.sw) ? co.sw : CW;
+    let sh2 = (co.sh) ? co.sh : CH;
+    let ox2 = (co.ox != null) ? co.ox : 0;
+    let oy2 = (co.oy != null) ? co.oy : 0;
+    let focal2 = sw2 / (2 * Math.tan(FOV_H * Math.PI / 360));
+    let cx2 =  rx*co.right.x + ry*co.right.y + rz*co.right.z;
+    let cy2 =  rx*co.up.x    + ry*co.up.y    + rz*co.up.z;
+    let cz2 = -(rx*co.fwd.x  + ry*co.fwd.y   + rz*co.fwd.z);
+    if (cz2 >= -0.05) return null;
+    let scale = focal2 / (-cz2);
+    return { x: ox2 + sw2/2 + cx2*scale, y: oy2 + sh2/2 - cy2*scale, scale, rz: cz2 };
+  }
+
+  // Fallback: straight ahead (fp without look)
+  if (rz >= -0.05) return null;
+  let scale = FOCAL / (-rz);
+  return { x: CW/2 + rx*scale, y: CH/2 - ry*scale, scale, rz: rz };
+}
+
+// Build a lookAt camera basis given position and target
+function buildCamBasis(px, py, pz, tx, ty, tz) {
+  // forward = normalize(target - position)
+  let fx=tx-px, fy=ty-py, fz=tz-pz;
+  let fl=Math.sqrt(fx*fx+fy*fy+fz*fz)||1;
+  fx/=fl; fy/=fl; fz/=fl;
+  // right = normalize(forward cross worldUp)
+  let wu={x:0,y:1,z:0};
+  let rx2=fy*wu.z-fz*wu.y, ry2=fz*wu.x-fx*wu.z, rz2=fx*wu.y-fy*wu.x;
+  let rl=Math.sqrt(rx2*rx2+ry2*ry2+rz2*rz2)||1;
+  rx2/=rl; ry2/=rl; rz2/=rl;
+  // up = right cross forward
+  let ux=ry2*fz-rz2*fy, uy=rz2*fx-rx2*fz, uz=rx2*fy-ry2*fx;
+  return {
+    fwd:   {x:fx, y:fy, z:fz},
+    right: {x:rx2,y:ry2,z:rz2},
+    up:    {x:ux, y:uy, z:uz}
+  };
+}
+
+// ── KEYS ──
+let keys = {}, twoPlayer = false, animId = null;
+
+// ── SETTINGS ──
+let settings = { pov: 'fp', sens: 0.0018, ballSpd: 1.0, cpuSkill: 0.78, gfx: 1.0 };
+let flowState = { active: false, alpha: 0 }; // spike flow state vignette
+
+function openSettings() {
+  drawPovThumbs();
+  document.getElementById('s-title').classList.remove('on');
+  document.getElementById('s-settings').classList.add('on');
+}
+function closeSettings() {
+  document.getElementById('s-settings').classList.remove('on');
+  document.getElementById('s-title').classList.add('on');
+  // update title subtitle
+  let labels = {fp:'FIRST PERSON · 2v2', tp:'THIRD PERSON · 2v2', tv:'BROADCAST · 2v2'};
+  document.getElementById('title-pov-lbl').textContent = labels[settings.pov];
+}
+function setPov(mode) {
+  settings.pov = mode;
+  ['fp','tp','tv'].forEach(m => {
+    let el = document.getElementById('pov-'+m);
+    el.classList.toggle('selected', m===mode);
+  });
+}
+function setSens(level) {
+  settings.sens = level==='low'?0.001:level==='mid'?0.0018:0.003;
+  ['low','mid','high'].forEach(l => document.getElementById('sens-'+l).classList.toggle('active', l===level));
+}
+function setBallSpd(level) {
+  settings.ballSpd = level==='slow'?1.0:level==='med'?1.6:2.4;
+  settings.cpuSkill = level==='slow' ? 0.66 : level==='med' ? 0.78 : 0.90;
+  settings.gfx = level==='fast' ? 1.15 : 1.0;
+  ['slow','med','fast'].forEach(l => document.getElementById('spd-'+l).classList.toggle('active', l===level));
+}
+
+function drawPovThumbs() {
+  // First person thumb
+  drawThumb('pov-thumb-fp', (c,w,h) => {
+    let g=c.createLinearGradient(0,0,0,h*0.6);g.addColorStop(0,'#1a6090');g.addColorStop(1,'#d4a030');
+    c.fillStyle=g;c.fillRect(0,0,w,h*0.65);
+    c.fillStyle='#c08820';c.fillRect(0,h*0.65,w,h*0.35);
+    // net
+    c.strokeStyle='rgba(255,255,255,0.8)';c.lineWidth=1.5;c.beginPath();c.moveTo(w*0.42,h*0.15);c.lineTo(w*0.42,h*0.65);c.stroke();
+    c.strokeStyle='rgba(255,255,255,0.4)';c.lineWidth=0.8;
+    for(let y=0.2;y<0.65;y+=0.12){c.beginPath();c.moveTo(w*0.25,h*y);c.lineTo(w*0.6,h*y);c.stroke();}
+    // crosshair
+    c.strokeStyle='rgba(255,255,255,0.7)';c.lineWidth=1;
+    c.beginPath();c.moveTo(w*0.5,h*0.3);c.lineTo(w*0.5,h*0.5);c.stroke();
+    c.beginPath();c.moveTo(w*0.4,h*0.4);c.lineTo(w*0.6,h*0.4);c.stroke();
+    // ball
+    let bg=c.createRadialGradient(w*0.65,h*0.35,1,w*0.65,h*0.35,8);bg.addColorStop(0,'#fff');bg.addColorStop(0.4,'#ff6020');bg.addColorStop(1,'#cc1800');
+    c.fillStyle=bg;c.beginPath();c.arc(w*0.65,h*0.35,8,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,255,255,0.6)';c.font='7px sans-serif';c.textAlign='left';c.fillText('POV',4,h-5);
+  });
+  // Third person thumb
+  drawThumb('pov-thumb-tp', (c,w,h) => {
+    let g=c.createLinearGradient(0,0,0,h*0.6);g.addColorStop(0,'#1a6090');g.addColorStop(1,'#d4a030');
+    c.fillStyle=g;c.fillRect(0,0,w,h*0.6);
+    c.fillStyle='#c08820';c.fillRect(0,h*0.6,w,h*0.4);
+    // net in perspective
+    c.strokeStyle='rgba(255,255,255,0.7)';c.lineWidth=1.5;
+    c.beginPath();c.moveTo(w*0.1,h*0.38);c.lineTo(w*0.9,h*0.38);c.stroke();
+    // player (back)
+    c.fillStyle='#ff2266';c.fillRect(w*0.35,h*0.45,12,22);
+    c.fillStyle='#fce8c0';c.beginPath();c.arc(w*0.41,h*0.42,6,0,Math.PI*2);c.fill();
+    // opponent (front, small)
+    c.fillStyle='#0066cc';c.fillRect(w*0.5,h*0.25,8,16);
+    c.fillStyle='#e0f0fc';c.beginPath();c.arc(w*0.54,h*0.22,5,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,255,255,0.6)';c.font='7px sans-serif';c.textAlign='left';c.fillText('3RD',4,h-5);
+  });
+  // Broadcast thumb
+  drawThumb('pov-thumb-tv', (c,w,h) => {
+    let g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#1a4090');g.addColorStop(1,'#c08820');
+    c.fillStyle=g;c.fillRect(0,0,w,h);
+    // court from side
+    c.fillStyle='#d4a030';c.fillRect(w*0.1,h*0.45,w*0.8,h*0.45);
+    // net vertical line
+    c.strokeStyle='rgba(255,255,255,0.8)';c.lineWidth=2;
+    c.beginPath();c.moveTo(w*0.5,h*0.2);c.lineTo(w*0.5,h*0.9);c.stroke();
+    // players
+    c.fillStyle='#ff2266';c.fillRect(w*0.28,h*0.5,10,20);
+    c.fillStyle='#fce8c0';c.beginPath();c.arc(w*0.33,h*0.47,5,0,Math.PI*2);c.fill();
+    c.fillStyle='#0066cc';c.fillRect(w*0.62,h*0.5,10,20);
+    c.fillStyle='#e0f0fc';c.beginPath();c.arc(w*0.67,h*0.47,5,0,Math.PI*2);c.fill();
+    // ball
+    let bg=c.createRadialGradient(w*0.5,h*0.35,1,w*0.5,h*0.35,6);bg.addColorStop(0,'#fff');bg.addColorStop(0.4,'#ff6020');bg.addColorStop(1,'#cc1800');
+    c.fillStyle=bg;c.beginPath();c.arc(w*0.5,h*0.35,6,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,255,255,0.6)';c.font='7px sans-serif';c.textAlign='left';c.fillText('TV',4,h-5);
+  });
+}
+
+function drawThumb(id, fn) {
+  let el=document.getElementById(id);if(!el)return;
+  let cx=el.getContext('2d');fn(cx,120,70);
+}
+
+// ── LOOK STATE (P1) ──
+const PITCH_MAX = Math.PI * 0.42;
+const YAW_MAX   = Math.PI * 0.85;
+let look = {
+  yaw: 0, pitch: 0, tyaw: 0, tpitch: 0,
+  locked: false, rawDx: 0, rawDy: 0
+};
+// ── LOOK STATE (P2) ──
+let look2 = {
+  yaw: 0, pitch: 0, tyaw: 0, tpitch: 0
+};
+
+function kd(c) { keys[c] = true; }
+function ku(c) { keys[c] = false; }
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space'].includes(e.code)) e.preventDefault();
+  // Arrow keys reserved for P2 movement in 2-player mode
+  if (!twoPlayer) {
+    if (e.code === 'ArrowLeft')  { look.tyaw   = Math.max(-YAW_MAX,   look.tyaw  - 0.08); }
+    if (e.code === 'ArrowRight') { look.tyaw   = Math.min( YAW_MAX,   look.tyaw  + 0.08); }
+    if (e.code === 'ArrowUp')    { look.tpitch = Math.min( PITCH_MAX, look.tpitch + 0.07); }
+    if (e.code === 'ArrowDown')  { look.tpitch = Math.max(-PITCH_MAX, look.tpitch - 0.07); }
+  }
+  // P2 look (numpad or IJKL)
+  if (e.code === 'KeyI')     { look2.tpitch = Math.min( PITCH_MAX, look2.tpitch + 0.07); }
+  if (e.code === 'KeyK')     { look2.tpitch = Math.max(-PITCH_MAX, look2.tpitch - 0.07); }
+  if (e.code === 'KeyJ')     { look2.tyaw   = Math.max(-YAW_MAX,   look2.tyaw  - 0.08); }
+  if (e.code === 'KeyL')     { look2.tyaw   = Math.min( YAW_MAX,   look2.tyaw  + 0.08); }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ── POINTER LOCK ──
+const cvs = document.getElementById('canvas');
+cvs.addEventListener('click', () => {
+  if (document.getElementById('s-game').classList.contains('on')) cvs.requestPointerLock();
+});
+document.addEventListener('pointerlockchange', () => {
+  look.locked = (document.pointerLockElement === cvs);
+});
+// Accumulate raw mouse delta — apply smoothly each frame
+document.addEventListener('mousemove', e => {
+  if (!look.locked) return;
+  look.rawDx += e.movementX;
+  look.rawDy += e.movementY;
+});
+
+// Called each frame — smoothly apply accumulated mouse deltas
+function updateLook() {
+  const SENS = (typeof settings !== 'undefined') ? settings.sens : 0.0018;
+  // Apply raw accumulated movement to target
+  look.tyaw   += look.rawDx * SENS;
+  look.tpitch -= look.rawDy * SENS;
+  look.rawDx = 0; look.rawDy = 0;
+  // Clamp target
+  look.tyaw   = Math.max(-YAW_MAX,   Math.min(YAW_MAX,   look.tyaw));
+  look.tpitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX,  look.tpitch));
+  // Smooth interpolation current → target
+  let smooth = look.locked ? 0.22 : 0.12;
+  look.yaw   += (look.tyaw   - look.yaw)   * smooth;
+  look.pitch += (look.tpitch - look.pitch) * smooth;
+  // Drift back to center when unlocked
+  // no auto-return — view stays where you left it
+}
+function rn(a, b) { return Math.random() * (b - a) + a; }
+function rni(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+// ── GAME STATE ──
+let G = {}, particles = [], tick = 0;
+let shakeT = 0, shakeX = 0, shakeY = 0;
+
+function makePlayer(side, role, pos, vpos) {
+  // vpos: 'ws'=wing spiker, 's'=setter, 'l'=libero
+  let x = pos===2 ? 0 : pos===4 ? 0 : (pos===1 ? -2.5 : 2.5);
+  let z = side===1 ? (pos===1?3.0:pos===2?2.0:pos===4?1.5:7.0) : (pos===1?-3.5:pos===2?-2.0:pos===4?-1.5:-7.5);
+  return { x, y: 0, z, vx: 0, vy: 0, vz: 0, side, role, pos, vpos: vpos||'ws', onGround: true,
+    state: 'idle', facing: side === 1 ? 1 : -1, frame: 0, frameTimer: 0,
+    hairWave: 0, hiTimer: 0, touchCd: 0, aiRole: 'none',
+    jumpCharge: 0, charging: false,
+    diving: false, diveTimer: 0, diveVx: 0, diveVz: 0 };
+}
+
+function makeBall() {
+  return { x: 0, y: 2.5, z: 3.5, vx: 0, vy: 0, vz: 0,
+    sideHits: 0, lastSide: 0, lastPlayer: null, trail: [], glow: 0, setFloat: false,
+    stuckTimer: 0, lastX: 0, lastZ: 0, _quickSet: false,
+    spinX: 0, spinZ: 0, hitEase: 0 };
+}
+
+function initGame() {
+  G = {
+    p1a: makePlayer(1, 'human', 1, 'ws'),  // human = wing spiker
+    p1b: makePlayer(1, 'ai',    2, 's'),   // ai = setter
+    p1c: makePlayer(1, 'ai',    3, 'l'),   // ai = libero
+    p1d: makePlayer(1, 'ai',    4, 'mb'),  // ai = middle blocker
+    p2a: makePlayer(2, 'ai',    1, 'ws'),
+    p2b: makePlayer(2, 'ai',    2, 's'),
+    p2c: makePlayer(2, 'ai',    3, 'l'),
+    p2d: makePlayer(2, 'ai',    4, 'mb'),
+    ball: makeBall(),
+    score: [0, 0], sets: [0, 0], set: 1,
+    servingSide: 1,
+    state: 'serve',
+    celebTimer: 0, faultTimer: 0,
+    scoreTarget: 7, setsTarget: 2,
+    serveCharge: 0, serveCharging: false,
+    spikeAim: 0, spikeAimActive: false, // -1=line, 0=centre, 1=cross
+    _cpuServe: false,
+  };
+  particles = [];
+  positionServe(1);
+  updHUD(); showServePrompt(true);
+}
+
+function positionServe(side) {
+  let b = G.ball;
+  G.p1a.x=0;    G.p1a.z=16.5; G.p1a.y=0; G.p1a.vx=0; G.p1a.vy=0; G.p1a.vz=0;// serve from back
+  G.p1b.x=2.5;  G.p1b.z=6.0;  G.p1b.y=0; G.p1b.vx=0; G.p1b.vy=0; G.p1b.vz=0;
+  G.p2a.x=1.5;  G.p2a.z=-10.5; G.p2a.y=0; G.p2a.vx=0; G.p2a.vy=0; G.p2a.vz=0;// cpu from back
+  G.p2b.x=-2.0; G.p2b.z=-9.0; G.p2b.y=0; G.p2b.vx=0; G.p2b.vy=0; G.p2b.vz=0;
+  let srv = side === 1 ? G.p1a : G.p2a;
+  b.x = srv.x; b.y = 2.2; b.z = srv.z;
+  b.vx=0; b.vy=0; b.vz=0; b.sideHits=0; b.lastSide=0; b.lastPlayer=null; b.trail=[]; b.glow=0; b.setFloat=false; b.stuckTimer=0; b.lastX=b.x; b.lastZ=b.z; b._quickSet=false;
+  G.p1d.x=0;  G.p1d.z=1.5;  G.p1d.y=0; G.p1d.vx=0; G.p1d.vy=0; G.p1d.vz=0;// MB - net centre
+  G.p2d.x=0;  G.p2d.z=-1.5; G.p2d.y=0; G.p2d.vx=0; G.p2d.vy=0; G.p2d.vz=0;// MB - net centre
+  [G.p1a,G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d].forEach(p=>{ p.touchCd=0; p._blockErr=null; p._jumpOffset=null; });
+}
+
+function showServePrompt(show) {
+  let el = document.getElementById('serve-prompt');
+  el.style.display = show ? 'block' : 'none';
+  if (show) el.textContent = G.servingSide === 1 ? 'Hold SPACE to charge · Release to serve' : 'CPU Serving...';
+}
+
+// ── LOOP ──
+function startGame(tp) {
+  twoPlayer = tp;
+  document.getElementById('s-title').classList.remove('on');
+  document.getElementById('s-game').classList.add('on');
+  initGame();
+  look.yaw=0; look.pitch=0;
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+function restartGame() {
+  document.getElementById('s-over').classList.remove('on');
+  document.getElementById('s-game').classList.add('on');
+  G.score=[0,0]; G.sets=[0,0]; G.set=1; G.servingSide=1;
+  look.yaw=0; look.pitch=0;
+  initGame();
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+function goTitle() {
+  document.getElementById('s-over').classList.remove('on');
+  document.getElementById('s-title').classList.add('on');
+  if (animId) cancelAnimationFrame(animId);
+}
+function leaveMatch() {
+  if (animId) cancelAnimationFrame(animId);
+  document.getElementById('s-game').classList.remove('on');
+  document.getElementById('s-title').classList.add('on');
+  if (document.pointerLockElement) document.exitPointerLock();
+  look.yaw=0; look.pitch=0; look.tyaw=0; look.tpitch=0;
+}
+function loop() { animId = requestAnimationFrame(loop); tick++; update(); render(); }
+
+// ── UPDATE ──
+function update() {
+  updateLook();
+  updateParticles();
+  if (shakeT > 0) { shakeT--; shakeX = rn(-shakeT, shakeT)*0.3; shakeY = rn(-shakeT, shakeT)*0.2; }
+  else { shakeX = 0; shakeY = 0; }
+
+  if (G.state === 'celebrate') { if (--G.celebTimer <= 0) { G.state='serve'; positionServe(G.servingSide); showServePrompt(true); } return; }
+  if (G.state === 'fault')     { if (--G.faultTimer <= 0) { G.state='serve'; positionServe(G.servingSide); showServePrompt(true); hideFault(); } return; }
+
+  if (G.state === 'serve') {
+    handleMove();
+    let srv = G.servingSide === 1 ? G.p1a : G.p2a;
+    G.ball.x = srv.x; G.ball.z = srv.z; G.ball.y = 2.5; // ball above server at back
+
+    if (G.servingSide === 1) {
+      let p1ServeKey = twoPlayer ? keys['ShiftLeft'] : keys['Space'];
+      if (p1ServeKey) {
+        G.serveCharge = Math.min(1.0, (G.serveCharge||0) + 0.022);
+        G.serveCharging = true;
+        document.getElementById('jm-label').textContent = 'SERVE';
+        document.getElementById('jm-fill').style.width = (G.serveCharge*100)+'%';
+        // colour: blue=soft → red=power
+        let r=Math.floor(G.serveCharge*220), bl=Math.floor((1-G.serveCharge)*220);
+        document.getElementById('jm-fill').style.background = `rgb(${r},80,${bl})`;
+      } else if (G.serveCharging && !p1ServeKey) {
+        doServe(G.p1a, G.serveCharge);
+        G.serveCharge=0; G.serveCharging=false;
+        document.getElementById('jm-fill').style.width='0%';
+        document.getElementById('jm-label').textContent='JUMP';
+      }
+    }
+    if (G.servingSide === 2 && !twoPlayer && !G._cpuServe) {
+      G._cpuServe = true;
+      let cpuPow = rn(0.45, 0.85);
+      setTimeout(() => { if (G.state === 'serve') doServe(G.p2a, cpuPow); G._cpuServe = false; }, rni(600,1100));
+    }
+    updateAllPlayers();
+    return;
+  }
+
+  // PLAY
+  handleMove();
+  handleActions();
+  if (!twoPlayer) runCpuTeam(G.p2a, G.p2b, G.p2c, G.p2d, 2);
+  runCpuPartner(G.p1b, G.p1c, G.p1d, G.p1a);
+  updateAllPlayers();
+  updateBall();
+  checkPassiveCollisions();
+  checkNet();
+  checkScore();
+  // Flow state — set on our side ready to spike = full freeze
+  let b2=G.ball;
+  let setReadyForSpike = b2.setFloat && b2.lastSide===1; // trigger as soon as set
+  if (setReadyForSpike) {
+    flowState.alpha = Math.min(1, flowState.alpha + 0.12);
+    flowState.active = true;
+    // No position locking — ball drifts freely at slow speed
+    // If you miss it, it falls and it's a fault
+    if (Math.abs(b2.x) > COURT_W - 0.3) b2.vx *= 0.85; // only stop it leaving court
+  } else {
+    flowState.alpha = Math.max(0, flowState.alpha - 0.05);
+    if (flowState.alpha <= 0) flowState.active = false;
+  }
+  updHUD();
+  updateBallArrow();
+}
+
+// ── MOVE ──
+function handleMove() {
+  let p = G.p1a, spd = 0.14;
+  if (keys['KeyA'])  { p.vx = -spd; p.facing=-1; if(p.onGround)p.state='walk'; }
+  else if (keys['KeyD']) { p.vx =  spd; p.facing= 1; if(p.onGround)p.state='walk'; }
+  else { p.vx *= 0.55; if(p.onGround&&p.state==='walk')p.state='idle'; }
+  if (keys['KeyW'])  { p.vz = -spd*0.9; }
+  else if (keys['KeyS']) { p.vz =  spd*0.9; }
+  else { p.vz *= 0.55; }
+
+  // ── SPIKE AIM — accumulate aim direction from A/D during flow ──
+  { let _sb=G.ball;
+  if (flowState.active && _sb.setFloat && _sb.lastSide===1) {
+    if (keys['KeyA'])      { G.spikeAim = Math.max(-1, G.spikeAim - 0.05); G.spikeAimActive=true; }
+    else if (keys['KeyD']) { G.spikeAim = Math.min( 1, G.spikeAim + 0.05); G.spikeAimActive=true; }
+    else { G.spikeAim *= 0.92; }
+  } else if (!flowState.active) {
+    G.spikeAim = 0; G.spikeAimActive = false;
+  } }
+
+  // P2 movement (arrow keys)
+  if (twoPlayer) {
+    let p2 = G.p2a;
+    if (keys['ArrowLeft'])  { p2.vx = -spd; p2.facing=-1; if(p2.onGround)p2.state='walk'; }
+    else if (keys['ArrowRight']) { p2.vx =  spd; p2.facing= 1; if(p2.onGround)p2.state='walk'; }
+    else { p2.vx *= 0.55; if(p2.onGround&&p2.state==='walk')p2.state='idle'; }
+    // P2 depth: numpad 8/2 or PageUp/PageDown
+    if (keys['ArrowUp'])   { p2.vz =  spd*0.9; }
+    else if (keys['ArrowDown']) { p2.vz = -spd*0.9; }
+    else { p2.vz *= 0.55; }
+    // P2 jump: Numpad0 or RShift
+    if (keys['ShiftRight'] && p2.onGround && G.state!=='serve') {
+      p2.jumpCharge = Math.min(1.0,(p2.jumpCharge||0)+0.035);
+      p2.charging = true;
+    } else if (p2.charging && p2.onGround) {
+      let jv = 0.28 + p2.jumpCharge*0.28;
+      p2.vy=jv; p2.onGround=false; p2.state='jump'; spawnDust(p2);
+      p2.charging=false; p2.jumpCharge=0;
+    } else if (!keys['ShiftRight']) { p2.jumpCharge=0; }
+  }
+
+  // Jump — hold Space to charge, release to launch
+  if (G.state !== 'serve') {
+    let p1JumpKey = twoPlayer ? keys['ShiftLeft'] : keys['Space'];
+    if (p1JumpKey && p.onGround) {
+      p.jumpCharge = Math.min(1.0, (p.jumpCharge || 0) + 0.035);
+      p.charging = true;
+      document.getElementById('jm-fill').style.width = (p.jumpCharge * 100) + '%';
+    } else if (p.charging && p.onGround) {
+      let jv = 0.28 + p.jumpCharge * 0.28;
+      p.vy = jv; p.onGround = false; p.state = 'jump';
+      spawnDust(p); p.charging = false; p.jumpCharge = 0;
+      document.getElementById('jm-fill').style.width = '0%';
+    } else if (!keys['Space']) {
+      p.jumpCharge = 0;
+      document.getElementById('jm-fill').style.width = '0%';
+    }
+  }
+}
+
+// ── ACTIONS ──
+function handleActions() {
+  let p = G.p1a, b = G.ball;
+  let onMySide = b.z > -0.3;
+  if (onMySide && canTouch(p)) {
+    let d = dist3(p, b);
+    if (d < 1.8) {
+      if (keys['KeyZ']) { doBump(p,b); keys['KeyZ']=false; }
+      else if (keys['KeyX']) { doSet(p,b); keys['KeyX']=false; }
+      else if (keys['KeyC']) { doSpike(p,b); keys['KeyC']=false; }
+    }
+  }
+  // ── HUMAN BLOCK — Space when near net + spike incoming ──
+  let b3=G.ball;
+  let nearNet = p.z < 2.5; // within 2.5u of net
+  let spikeIncoming = b3.sideHits>=1 && !b3.setFloat && b3.vz > 0.8 && b3.z < 0;
+  if (nearNet && spikeIncoming && !p.onGround && canTouch(p)) {
+    let dBlock = dist3(p, b3);
+    let p1BlockKey = twoPlayer ? keys['ShiftLeft'] : keys['Space'];
+    if (dBlock < 2.5 && (p1BlockKey||keys['KeyC'])) {
+      // BLOCK — deflect back
+      registerTouch(p, b3);
+      b3.vz = -(2.2 + Math.random()*0.8);
+      b3.vy = -0.3; b3.vx = rn(-1.5,1.5);
+      b3.setFloat = false; b3.glow = 22;
+      spawnHit(b3.x,b3.y,b3.z,'#ffffaa',1.8); doShake(7);
+      showAnn('BLOCK!','');
+      keys['Space']=false; keys['ShiftLeft']=false; keys['KeyC']=false;
+    }
+  }
+
+  // P2 actions (Numpad 1/2/3 or U/H/N)
+  if (twoPlayer) {
+    let p2 = G.p2a, onP2Side = b.z < 0.3;
+    if (onP2Side && canTouch(p2)) {
+      let d2 = dist3(p2, b);
+      if (d2 < 1.8) {
+        if (keys['Comma']) { doBump(p2,b); keys['Comma']=false; }
+        else if (keys['Period']) { doSet(p2,b); keys['Period']=false; }
+        else if (keys['Slash']) { doSpike(p2,b); keys['Slash']=false; }
+      }
+    }
+    // P2 serve
+    if (G.state === 'serve' && G.servingSide === 2) {
+      if (keys['ShiftRight']) {
+        G.serveCharge = Math.min(1.0,(G.serveCharge||0)+0.022);
+        G.serveCharging = true;
+      } else if (G.serveCharging) {
+        doServe(G.p2a, G.serveCharge);
+        G.serveCharge=0; G.serveCharging=false;
+      }
+    }
+  }
+}
+
+function dist3(a, b) {
+  let dx=b.x-a.x, dy=b.y-(a.y+1.2), dz=b.z-a.z;
+  return Math.sqrt(dx*dx+dy*dy+dz*dz);
+}
+
+// ── TOUCH SYSTEM ──
+function canTouch(p) {
+  let b = G.ball;
+  if (b.lastPlayer === p) return false;
+  if (b.lastSide === p.side && b.sideHits >= 3) return false;
+  if (p.touchCd > 0) return false;
+  return true;
+}
+function registerTouch(p, b) {
+  if (b.lastSide !== p.side) { b.sideHits = 0; b.lastSide = p.side; }
+  b.sideHits++; b.lastPlayer = p; p.hiTimer = 10; p.touchCd = 40;// longer cooldown prevents re-catch
+  updTouchDisplay();
+  if (b.sideHits > 3) triggerFault(p.side, '4TH TOUCH!');
+}
+
+function startDive(p, targetX, targetZ) {
+  if (p.diving) return;
+  let dx = targetX - p.x, dz = targetZ - p.z;
+  let dist = Math.sqrt(dx*dx+dz*dz) || 1;
+  let spd = 0.45; // dive slide speed for big court
+  p.diving = true;
+  p.diveTimer = 32; // frames of slide
+  p.diveVx = (dx/dist) * spd;
+  p.diveVz = (dz/dist) * spd;
+  p.state = 'dive';
+  p.y = 0; p.vy = 0; p.onGround = true;
+  spawnDust(p);
+}
+
+function doBump(p, b) {
+  if (!canTouch(p)) return;
+  registerTouch(p, b);
+  // Soft receive — absorb incoming velocity, pop up gently
+  let setX = 0, setZ = 2.5;
+  b.vx = b.vx * 0.08 + (setX - b.x) * 0.12;
+  b.vy = 1.4 + Math.abs(b.vy) * 0.04;
+  b.vz = b.vz * 0.06 + (setZ - b.z) * 0.10;
+  b.spinX = (setX - b.x) * 0.05;
+  b.spinZ = (setZ - b.z) * 0.03;
+  b.hitEase = 0.55;
+  b.y = Math.max(b.y, p.y + 1.5);// ensure ball above player after bump
+  b.glow = 10; b.setFloat = false; p.state = 'bump'; p.frame = 0;
+  spawnHit(b.x, b.y, b.z, '#4488ff', 0.7);
+}
+function doSet(p, b) {
+  if (!canTouch(p)) return;
+  registerTouch(p, b);
+  b.x = p.x + (p.side===1?-0.5:0.5);
+  b.z = p.z + (p.side===1?-0.8:0.8);
+
+  let mbRef = p.side===1 ? G.p1d : G.p2d;
+  let goMB = Math.random() < 0.20; // 20% quick set to MB
+
+  if (goMB && mbRef) {
+    // Quick low set to MB at net
+    let mbTX = mbRef.x + (p.side===1 ? -1.5 : 1.5);
+    let mbTZ = p.side===1 ? 0.8 : -0.8;
+    b.vx = (mbTX - b.x) * 0.55;
+    b.vy = 0.08; // flat quick set
+    b.vz = (mbTZ - b.z) * 0.45;
+    b.spinX = (mbTX - b.x) * 0.03;
+    b.spinZ = (mbTZ - b.z) * 0.04;
+    b._quickSet = true;
+    spawnHit(b.x, b.y, b.z, '#ff8800', 0.8);
+  } else {
+    // 80% — WS edge set
+    let edgeX = p.side===1 ? -(COURT_W * 0.55) : (COURT_W * 0.55);
+    let netZ  = p.side===1 ? 0.8 : -0.8;
+    b.vx = (edgeX - b.x) * 0.38;
+    b.vy = 0.22;
+    b.vz = (netZ - b.z) * 0.30;
+    b.spinX = (edgeX - b.x) * 0.04;
+    b.spinZ = (netZ - b.z) * 0.03;
+    b._quickSet = false;
+    spawnHit(b.x, b.y, b.z, '#44cc88', 0.6);
+  }
+  b.hitEase = 0.45;
+  b.glow = 8; b.setFloat = true; p.state = 'set'; p.frame = 0;
+}
+function doAICrossSpike(p, b, forcedAimX) {
+  if (!canTouch(p)) return;
+  registerTouch(p, b);
+  let dir = p.side === 1 ? -1 : 1;
+  let airBonus = p.onGround ? 0 : Math.max(0, p.vy * -0.5 + 1.2);
+
+  // CPU: 60% line (same side), 40% cross-court, occasionally straight
+  let roll = Math.random();
+  let aimX = forcedAimX;
+  if (aimX == null) {
+    if (roll < 0.55) {
+      // Line shot — spike down the side the ball came from
+      aimX = (b.x < 0 ? -1 : 1) * COURT_W * 0.65;
+    } else if (roll < 0.90) {
+      // Cross-court — spike to opposite corner
+      aimX = (b.x < 0 ? 1 : -1) * COURT_W * 0.65;
+    } else {
+      // Straight — down the middle
+      aimX = rn(-COURT_W * 0.2, COURT_W * 0.2);
+    }
+  }
+
+  b.vx = (aimX - b.x) * 0.24;
+  b.vz = dir * (2.6 + airBonus * 0.8); // faster if jumped well
+  b.vy = 0.2;
+  b.spinX = (aimX - b.x) * 0.08;
+  b.spinZ = dir * 0.18;
+  b.hitEase = 0.2;
+  b.glow = 24; b.setFloat = false; p.state = 'spike'; p.frame = 0;
+  b._quickSet = false;
+  spawnHit(b.x, b.y, b.z, p.side===1 ? '#ff2266' : '#0088ee', 1.8);
+  if (airBonus > 0.5) doShake(6);
+}
+
+function doSpike(p, b) {
+  if (!canTouch(p)) return;
+  registerTouch(p, b);
+  let dir = p.side === 1 ? -1 : 1;
+  let airBonus = p.onGround ? 0 : Math.max(0, p.vy * -0.5 + 1.2);
+  let aimX;
+  if (p.role === 'human' && G.spikeAimActive) {
+    // aim bar: left (A) = LINE shot (same side as you), right (D) = CROSS court (diagonal)
+    // Ball set to left edge, so player approaches from left (p.x < 0 usually)
+    // LINE = keep ball going to same side = negative x stays negative
+    // CROSS = ball goes to opposite side = positive x
+    // G.spikeAim: -1 = line, 0 = straight, +1 = cross
+    let lineX   = -(COURT_W * 0.70); // line shot — same side as set
+    let crossX  =  (COURT_W * 0.70); // cross court — opposite side
+    let straightX = 0;
+    // interpolate between line/straight/cross
+    if (G.spikeAim < 0) {
+      aimX = lineX * Math.abs(G.spikeAim) + straightX * (1-Math.abs(G.spikeAim));
+    } else {
+      aimX = crossX * G.spikeAim + straightX * (1-G.spikeAim);
+    }
+  } else {
+    // AI random aim, slightly toward open court
+    aimX = rn(-COURT_W * 0.65, COURT_W * 0.65);
+  }
+  b.vx = (aimX - b.x) * 0.22;
+  b.vz = dir * (2.8 + airBonus * 0.7);
+  b.vy = 0.3;
+  b.spinX = (aimX - b.x) * 0.09;
+  b.spinZ = dir * 0.22;
+  b.hitEase = 0.18;
+  b.glow = 24; b.setFloat = false; p.state = 'spike'; p.frame = 0;
+  G.spikeAim = 0; G.spikeAimActive = false;
+  spawnHit(b.x, b.y, b.z, p.side===1?'#ff2266':'#0088ee', 1.8);
+  if (airBonus > 0.5) doShake(8);
+}
+function doServe(p, power) {
+  power = power || 0.5;
+  showServePrompt(false);
+  let b = G.ball;
+  let dir = p.side === 1 ? -1 : 1;
+  // power 0=float serve (slow, high arc), 1=jump serve (fast, flat)
+  // vz range: 0.8 (soft float) → 4.5 (power jump serve)
+  b.vz = dir * (0.8 + power * 3.7);
+  b.vx = rn(-0.4, 0.4) * (0.5 + power);
+  // high arc on soft serve, flatter on power serve
+  b.vy = 3.5 - power * 1.2;
+  b.spinX = b.vx * 0.3;
+  b.spinZ = dir * (0.08 + power * 0.25);
+  b.hitEase = 0.3;
+  b.sideHits = 1; b.lastSide = p.side; b.lastPlayer = p;
+  p.touchCd = 20; p.state = 'spike'; p.frame = 0;
+  let col = power < 0.4 ? '#88ddff' : power < 0.7 ? '#ffdd44' : '#ff4422';
+  spawnHit(b.x, b.y, b.z, col, 0.8 + power*0.8);
+  G.state = 'play'; keys['Space'] = false;
+}
+
+// ── BALL PHYSICS ──
+function updateBall() {
+  let b = G.ball;
+  // Early exit handled inside for flow state
+  b.trail.push({ x:b.x, y:b.y, z:b.z, t:12 });
+  if (b.trail.length > 16) b.trail.shift();
+  b.trail.forEach(t => t.t--);
+  b.trail = b.trail.filter(t => t.t > 0);
+
+  // gravity varies by shot type (set flag makes it floaty)
+  // Flow state = complete freeze on set ball
+  let inFlow = flowState.active && b.setFloat && b.lastSide === 1;
+  if (inFlow) {
+    // All axes slow — ball drifts toward destination and slowly falls
+    // Miss it = fault
+    const S = 0.15;
+    b.vy -= GRAV * 0.10 * S;
+    b.x  += b.vx * 0.28 * S;
+    b.y  += b.vy * S; // scale Y too
+    b.z  += b.vz * 0.28 * S;
+    b.vx *= 0.999; b.vz *= 0.999;
+    return;
+  }
+  let ballGrav = b.setFloat ? GRAV * 0.10 : GRAV * 0.36;
+  // extra air drag right after contact to make touch timing feel cleaner
+  let ease = b.hitEase || 0;
+  if (ease > 0) {
+    b.hitEase = Math.max(0, ease - 0.03);
+    ballGrav *= 0.85 + ease * 0.15;
+  }
+  b.vy -= ballGrav;
+  // Slow horizontal travel (except spike which already has high velocity that decays)
+  let bspd = (typeof settings !== 'undefined') ? settings.ballSpd : 1.0;
+  // Subtle Magnus-style drift for more expressive serves/spikes.
+  b.vx += (b.spinX || 0) * 0.006;
+  b.vz += (b.spinZ || 0) * 0.005;
+  b.x  += b.vx * 0.28 * bspd;
+  b.y  += b.vy;
+  b.z  += b.vz * 0.28 * bspd;
+  b.vx *= 0.972;
+  b.vz *= 0.972;
+  b.spinX *= 0.95;
+  b.spinZ *= 0.95;
+  if (b.glow > 0) b.glow--;
+
+  // height cap
+  if (b.y > 9.0) { b.y = 9.0; b.vy = Math.min(b.vy, -0.05); }
+  // ground
+  if (b.y <= BALL_R) { b.y = BALL_R; b.vy = 0; b.vx *= 0.3; b.vz *= 0.3; } // land, no bounce
+  // walls
+  if (Math.abs(b.x) > COURT_W) { b.x = Math.sign(b.x)*COURT_W; b.vx *= -0.7; }
+  if (b.z >  COURT_D+1) { b.z =  COURT_D+1; b.vz *= -0.5; }
+  if (b.z < -COURT_D-1) { b.z = -COURT_D-1; b.vz *= -0.5; }
+
+  // Stuck-ball safety — works on BOTH sides, including our side
+  if (G.state === 'play') {
+    let moved = Math.abs(b.x - b.lastX) + Math.abs(b.z - b.lastZ);
+    if (moved < 0.02) {
+      b.stuckTimer++;
+      if (b.stuckTimer > 90) {// 1.5s timeout
+        // Force score for the side the ball is NOT on
+        let landSide = b.z > 0 ? 1 : 2;
+        let scorer = landSide === 1 ? 2 : 1;
+        scorePoint(scorer);
+        return;
+      }
+    } else {
+      b.stuckTimer = 0;
+      b.lastX = b.x; b.lastZ = b.z;
+    }
+  }
+}
+
+function checkNet() {
+  let b = G.ball;
+  if (Math.abs(b.z) < 0.2 && b.y < NET_H + BALL_R) {
+    b.vz *= -0.55; b.z = b.vz > 0 ? 0.2 : -0.2;
+    spawnHit(b.x, b.y, b.z, '#f8f0c0', 0.3);
+  }
+}
+function checkPassiveCollisions() {
+  [G.p1a,G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d].forEach(p => {
+    let b = G.ball;
+    // Skip if this player just touched the ball (let it fly away first)
+    if (p.touchCd > 10) return;
+    let dx=b.x-p.x, dy=b.y-(p.y+1.2), dz=b.z-p.z;
+    let d = Math.sqrt(dx*dx+dy*dy+dz*dz);
+    let r = 0.85 + BALL_R; // tighter radius so it doesn't trigger too early
+    if (d < r && d > 0.01) {
+      // Push ball out of overlap first
+      let nx=dx/d,ny=dy/d,nz=dz/d;
+      b.x = p.x + nx*r; b.y = (p.y+1.2) + ny*r; b.z = p.z + nz*r;
+      let dot = b.vx*nx+b.vy*ny+b.vz*nz;
+      if (dot < 0) { b.vx -= 1.6*dot*nx; b.vy -= 1.6*dot*ny; b.vz -= 1.6*dot*nz; }
+    }
+  });
+}
+function checkScore() {
+  let b = G.ball;
+  if (G.state !== 'play') return;
+
+  // Ball lands in court — the side it lands on LOSES the point
+  if (b.y <= BALL_R + 0.05) {
+    let inX = Math.abs(b.x) <= COURT_W;
+    let inZ = Math.abs(b.z) <= COURT_D;
+    if (!inX || !inZ) {
+      // Ball landed OUT — server/hitter loses the point
+      // Award point to whoever did NOT last hit it
+      let scorer = b.lastSide === 1 ? 2 : 1;
+      showOutMsg('OUT!');
+      spawnScore(b.x, b.y, b.z); doShake(6);
+      scorePoint(scorer);
+      return;
+    }
+    // In bounds — side it landed on loses
+    let landSide = b.z > 0 ? 1 : 2;
+    let scorer = landSide === 1 ? 2 : 1;
+    spawnScore(b.x, b.y, b.z); doShake(12);
+    scorePoint(scorer);
+    return;
+  }
+  // Ball exits court boundaries in the air — OUT
+  if (Math.abs(b.x) > COURT_W + 1.0 && b.y < 3.0) {
+    let scorer = b.lastSide === 1 ? 2 : 1;
+    showOutMsg('OUT!'); scorePoint(scorer); return;
+  }
+  if (b.z >  COURT_D + 1.0 && b.y < 3.0) { showOutMsg('OUT!'); scorePoint(2); return; }
+  if (b.z < -COURT_D - 1.0 && b.y < 3.0) { showOutMsg('OUT!'); scorePoint(1); return; }
+}
+
+let outMsgTimer = null;
+function showOutMsg(msg) {
+  let el = document.getElementById('fault-msg');
+  el.textContent = msg; el.classList.add('show');
+  if (outMsgTimer) clearTimeout(outMsgTimer);
+  outMsgTimer = setTimeout(() => el.classList.remove('show'), 1200);
+}
+
+// ── PLAYER PHYSICS ──
+function updateAllPlayers() {
+  [G.p1a,G.p1b,G.p1c,G.p2a,G.p2b,G.p2c].forEach(p => {
+    // Dive physics — slides along ground
+    if (p.diving) {
+      p.diveTimer--;
+      p.x += p.diveVx; p.z += p.diveVz;
+      p.diveVx *= 0.82; p.diveVz *= 0.82; // friction
+      p.y = 0; p.vy = 0; p.onGround = true;
+      if (p.diveTimer <= 0) {
+        p.diving = false; p.diveVx = 0; p.diveVz = 0;
+        p.state = 'idle';
+      }
+    } else {
+      p.x += p.vx; p.z += p.vz;
+      p.vy -= GRAV * 0.32; p.y += p.vy;
+      if (p.y <= 0) { p.y=0; p.vy=0; p.onGround=true; if(p.state==='jump')p.state='idle'; }
+    }
+    // Bounds clamping (always applied, dive or not)
+    let minZ = p.side===1 ? 0.3 : -(COURT_D-0.3);
+    let maxZ = p.side===1 ? (COURT_D-0.3) : -0.3;
+    p.z = Math.max(minZ, Math.min(maxZ, p.z));
+    p.x = Math.max(-COURT_W+0.4, Math.min(COURT_W-0.4, p.x));
+    if (!p.diving) { p.vx *= 0.6; p.vz *= 0.6; }
+    p.hairWave = (p.hairWave + 0.08) % (Math.PI*2);
+    if (p.hiTimer > 0) p.hiTimer--;
+    if (p.touchCd > 0) p.touchCd--;
+    p.frameTimer++;
+    if (p.state==='walk'&&p.frameTimer>7){p.frameTimer=0;p.frame=(p.frame+1)%4;}
+    else if(p.state==='idle'&&p.frameTimer>20){p.frameTimer=0;p.frame=(p.frame+1)%2;}
+    else if(['spike','bump','set'].includes(p.state)&&p.frameTimer>5){p.frameTimer=0;p.frame++;if(p.frame>3){p.state='idle';p.frame=0;}}
+  });
+}
+
+// ── CPU AI ──
+function predictLanding() {
+  let b = G.ball;
+  // Use same physics as updateBall: horizontal *= 0.28, gravity = GRAV*0.36
+  let bx=b.x, by=b.y, bz=b.z;
+  let bvx=b.vx, bvy=b.vy, bvz=b.vz;
+  let sx=b.spinX||0, sz=b.spinZ||0;
+  let bspd = (typeof settings !== 'undefined') ? settings.ballSpd : 1.0;
+  for (let i=0; i<300; i++) {
+    bvy -= GRAV * (b.setFloat ? 0.10 : 0.36);
+    bvx += sx * 0.006;
+    bvz += sz * 0.005;
+    bx  += bvx * 0.28 * bspd;
+    by  += bvy;
+    bz  += bvz * 0.28 * bspd;
+    bvx *= 0.972; bvz *= 0.972;
+    sx *= 0.95; sz *= 0.95;
+    if (by <= BALL_R) return {x:bx, z:bz, frame:i};
+  }
+  return {x:bx, z:bz, frame:300};
+}
+
+function cpuProfile() {
+  let s = Math.max(0.4, Math.min(1, settings.cpuSkill || 0.78));
+  return {
+    readErr: (1 - s) * 2.3,
+    diveChance: 0.45 + s * 0.4,
+    cleanBlock: 0.48 + s * 0.36,
+    shotVar: (1 - s) * 2.2
+  };
+}
+
+function openShotX(side) {
+  // Pick less crowded lane on opponent side for smarter attacks.
+  let opp = side===1 ? [G.p2a,G.p2b,G.p2c,G.p2d] : [G.p1a,G.p1b,G.p1c,G.p1d];
+  let lanes = [-COURT_W*0.7, -COURT_W*0.35, 0, COURT_W*0.35, COURT_W*0.7];
+  let bestX = 0, best = -999;
+  lanes.forEach(x => {
+    let nearest = 999;
+    opp.forEach(p => {
+      let d = Math.abs(p.x - x) + Math.abs((side===1?-6:6) - p.z) * 0.2;
+      if (d < nearest) nearest = d;
+    });
+    if (nearest > best) { best = nearest; bestX = x; }
+  });
+  return bestX;
+}
+
+function assignRoles4(pa, pb, pc, pd, touches, onSide) {
+  // pa=WS, pb=S(setter), pc=L(libero), pd=MB
+  let b = G.ball;
+  if (!onSide) {
+    let spikeIncoming = b.sideHits>=1 && !b.setFloat &&
+      ((pa.side===1&&b.vz<0)||(pa.side===2&&b.vz>0)) && Math.abs(b.vz) > 0.7;
+    if (spikeIncoming) {
+      pd.aiRole='blocker'; pa.aiRole='blocker';
+      pb.aiRole='defend'; pc.aiRole='libero';
+    } else {
+      pd.aiRole='net_guard'; pa.aiRole='defend';
+      pb.aiRole='ready'; pc.aiRole='libero';
+    }
+    return;
+  }
+  if (touches === 0) {
+    // First touch: LIBERO receives, setter rushes to set position, MB and WS hold ready
+    pc.aiRole = 'receiver';
+    pb.aiRole = 'ready';       // setter pre-positions near net
+    pa.aiRole = 'approach';    // WS approaches spike zone
+    pd.aiRole = 'mb_ready';    // MB holds net centre ready
+  } else if (touches === 1) {
+    // Second touch: SETTER sets it
+    pb.aiRole = 'setter';
+    pa.aiRole = 'approach';    // WS keeps approaching
+    pd.aiRole = 'quick_attack';// MB ready for quick set
+    pc.aiRole = 'support';
+  } else if (touches === 2) {
+    // Third touch: WS or MB spikes
+    if (b._quickSet) {
+      pd.aiRole = 'quick_attack'; pa.aiRole = 'support';
+    } else {
+      pa.aiRole = 'spiker'; pd.aiRole = 'support';
+    }
+    pb.aiRole = 'support'; pc.aiRole = 'support';
+  } else {
+    pa.aiRole='support'; pb.aiRole='support'; pc.aiRole='support'; pd.aiRole='support';
+  }
+}
+
+function assignRoles3(pa, pb, pc, touches, onSide) {
+  // pa=WS, pb=S, pc=L
+  let b = G.ball;
+  if (!onSide) {
+    let spikeIncoming = b.sideHits>=1 && !b.setFloat && ((pa.side===1&&b.vz<0)||(pa.side===2&&b.vz>0)) && Math.abs(b.vz) > 0.7;
+    if (spikeIncoming) {
+      pa.aiRole = 'blocker'; pb.aiRole = 'blocker'; pc.aiRole = 'libero';
+    } else {
+      pa.aiRole = 'defend'; pb.aiRole = 'defend'; pc.aiRole = 'libero';
+    }
+    return;
+  }
+  if (touches === 0) {
+    // Libero receives, setter gets ready, WS approaches spike
+    pc.aiRole = 'receiver'; pb.aiRole = 'setter'; pa.aiRole = 'spiker';
+  } else if (touches === 1) {
+    // Ball was received — setter sets, WS spikes
+    pb.aiRole = 'setter'; pa.aiRole = 'spiker'; pc.aiRole = 'support';
+  } else if (touches === 2) {
+    // Set done — WS spikes, others support
+    pa.aiRole = 'spiker'; pb.aiRole = 'support'; pc.aiRole = 'support';
+  } else {
+    pa.aiRole = 'support'; pb.aiRole = 'support'; pc.aiRole = 'support';
+  }
+}
+
+function assignRoles(pa, pb, touches, onSide) {
+  let b = G.ball;
+  if (!onSide) {
+    // Ball on opponent side — check if spike incoming, assign blocker
+    let oppTouches = b.lastSide !== pa.side ? b.sideHits : 0;
+    let spikeIncoming = b.sideHits>=1 && !b.setFloat && ((pa.side===1&&b.vz<0)||(pa.side===2&&b.vz>0)) && Math.abs(b.vz) > 0.7;
+    if (spikeIncoming) {
+      // front player blocks at net, back player covers
+      if (pa.pos === 1) { pa.aiRole = 'blocker'; pb.aiRole = 'libero'; }
+      else              { pb.aiRole = 'blocker'; pa.aiRole = 'libero'; }
+    } else {
+      pa.aiRole = 'defend'; pb.aiRole = 'defend';
+    }
+    return;
+  }
+  let da=dist3(pa,G.ball), db=dist3(pb,G.ball);
+  if (touches===0) { if(da<db){pa.aiRole='receiver';pb.aiRole='setter';}else{pb.aiRole='receiver';pa.aiRole='setter';} }
+  else if (touches===1) { if(b.lastPlayer===pa){pa.aiRole='spiker';pb.aiRole='setter';}else{pb.aiRole='spiker';pa.aiRole='setter';} }
+  else if (touches===2) { if(b.lastPlayer===pa){pa.aiRole='support';pb.aiRole='spiker';}else{pb.aiRole='support';pa.aiRole='spiker';} }
+  else { pa.aiRole='support'; pb.aiRole='support'; }
+}
+
+function runCpuTeam(pa, pb, pc, pd, side) {
+  let b = G.ball;
+  let onSide = side===1 ? b.z>0 : b.z<0;
+  let touches = b.lastSide===side ? b.sideHits : 0;
+  assignRoles4(pa, pb, pc, pd, touches, onSide);
+  runRole(pa, side); runRole(pb, side); runRole(pc, side); runRole(pd, side);
+}
+
+function runRole(p, side) {
+  let b = G.ball, spd = 0.30 + G.set*0.01;
+  let cpu = cpuProfile();
+  let onSide = side===1 ? b.z>0 : b.z<0;
+  switch (p.aiRole) {
+    case 'defend': {
+      let defZ = side===1 ? 6 : -6;
+      moveTo(p, p.x*0.5, 0, defZ, spd*0.5); break;
+    }
+    case 'ready': {
+      // Setter pre-positions near net centre, ready to receive the dig
+      let readyZ = side===1 ? 2.0 : -2.0;
+      moveTo(p, 0, 0, readyZ, spd*1.4); break;
+    }
+    case 'approach': {
+      // WS approaches spike zone — left edge, close to net
+      let apZ = side===1 ? 1.5 : -1.5;
+      let apX = side===1 ? -(COURT_W*0.55) : (COURT_W*0.55);
+      moveTo(p, apX, 0, apZ, spd*1.2); break;
+    }
+    case 'mb_ready': {
+      // MB holds centre net, ready to block or do quick attack
+      let mbZ = side===1 ? 1.2 : -1.2;
+      moveTo(p, 0, 0, mbZ, spd*1.0); break;
+    }
+    case 'receiver': {
+      // Sprint hard to predicted landing spot
+      let land = predictLanding();
+      let lx = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, land.x + rn(-cpu.readErr, cpu.readErr)));
+      let lz = side===1 ? Math.max(0.3, Math.min(COURT_D-0.5, land.z))
+                        : Math.min(-0.3, Math.max(-(COURT_D-0.5), land.z));
+      moveTo(p, lx, 0, lz, spd*2.0); // full sprint
+      let dr=dist3(p,b);
+      // Dive if needed
+      if(!p.diving && dr<5.0 && b.y<2.5 && canTouch(p) && dr>1.4 && Math.random()<cpu.diveChance) startDive(p,b.x,b.z);
+      if(dr<2.2&&canTouch(p)) doBump(p,b);
+      break;
+    }
+    case 'setter': {
+      // Predict where bumped ball will land and sprint there
+      let setTX = b.x + b.vx * 10;
+      let setTZ = side===1 ? Math.max(0.5, Math.min(COURT_D-1, b.z + b.vz*10*0.28))
+                           : Math.min(-0.5, Math.max(-(COURT_D-1), b.z + b.vz*10*0.28));
+      moveTo(p, setTX, 0, setTZ, spd*2.2); // sprint!
+      let d=dist3(p,b);
+      if (d < 2.5 && p.onGround && b.y > 1.0) { p.vy=0.50; p.onGround=false; spawnDust(p); }
+      if (d < 1.8 && canTouch(p)) doSet(p, b);
+      break;
+    }
+    case 'spiker': {
+      // Approach ball — get to spike zone (just behind ball, close to net)
+      let spikeZ = side===1 ? Math.min(b.z+0.8, COURT_D-0.5) : Math.max(b.z-0.8, -(COURT_D-0.5));
+      let approachX = b.x + (b.x >= 0 ? -1.2 : 1.2); // approach from behind ball
+      moveTo(p, approachX, 0, spikeZ, spd*1.6);
+      let d = dist3(p, b);
+      // Jump when in range and ball is at good height
+      if (p.onGround && d < 3.5 && b.y > 0.5) {
+        p.vy = 0.52; p.onGround = false; spawnDust(p);
+      }
+      // Spike in the air — use aimed spike
+      if (!p.onGround && d < 2.2 && canTouch(p)) {
+        // Smarter CPU spike aim toward open court with controllable variance.
+        let targetX = openShotX(side) + rn(-cpu.shotVar, cpu.shotVar);
+        doAICrossSpike(p, b, targetX);
+      }
+      break;
+    }
+    case 'support': {
+      let backZ = side===1 ? 7 : -7;
+      moveTo(p, p.x>0?3:-3, 0, backZ, spd*0.4); break;
+    }
+    case 'blocker': {
+      let b3 = G.ball;
+      let blockZ = side===1 ? 0.4 : -0.4;
+
+      // Reaction error — blocker slightly misreads ball X (adds imperfection)
+      // Each player has a persistent read error that resets per rally
+      if (!p._blockErr) p._blockErr = rn(-2.5, 2.5);
+      let centreX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, b3.x));
+      let blockX = p.vpos==='mb' ?
+        centreX + p._blockErr * 0.4 :                         // MB: smaller error (closer to net)
+        centreX + (centreX>=0?-1.8:1.8) + p._blockErr * 0.6; // WS/S: bigger error + offset
+      blockX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, blockX));
+
+      moveTo(p, blockX, 0, blockZ, spd*1.9);
+
+      let distToNet = Math.abs(b3.z);
+      let framesLeft = distToNet / (Math.abs(b3.vz)*0.28 + 0.001);
+
+      // Timing error — each blocker has a slightly different jump window (+/-3 frames)
+      if (!p._jumpOffset) p._jumpOffset = rn(-3, 3);
+      let jumpWindow = 22 + p._jumpOffset;
+      if (p.onGround && framesLeft < jumpWindow && framesLeft > 0) {
+        p.vy = 0.58; p.onGround = false; spawnDust(p);
+        p.state = 'spike'; p.frame = 0;
+      }
+
+      // Block contact — 65% success rate, wide ball or mistimed = miss
+      let ballComing = (side===1 && b3.vz > 0) || (side===2 && b3.vz < 0);
+      let d = dist3(p, b3);
+      let xMiss = Math.abs(p.x - b3.x) > 2.2; // too far to the side = miss
+      let timingMiss = Math.abs(p.y - b3.y + 1.0) > 1.8; // jumped too early/late
+      if (!p.onGround && d < 2.6 && canTouch(p) && ballComing && !xMiss && !timingMiss) {
+        // 65% actual block, 35% touch-and-deflect (soft, less effective)
+        let cleanBlock = Math.random() < cpu.cleanBlock;
+        registerTouch(p, b3);
+        let dir = side===1 ? -1 : 1;
+        if (cleanBlock) {
+          b3.vz = dir * (2.0 + Math.random()*1.2);
+          b3.vy = -0.3;
+          b3.vx = rn(-2.0, 2.0);
+          spawnHit(b3.x,b3.y,b3.z,'#ffffaa',1.8); doShake(7);
+          showAnn('BLOCK!','');
+        } else {
+          // Soft deflect — ball goes up weakly, opponent gets another shot
+          b3.vz = dir * (0.6 + Math.random()*0.4);
+          b3.vy = 0.8;
+          b3.vx = rn(-0.8, 0.8);
+          spawnHit(b3.x,b3.y,b3.z,'rgba(255,200,100,0.8)',0.8);
+        }
+        b3.setFloat = false; b3.glow = 16;
+        // Reset error for next rally
+        p._blockErr = null; p._jumpOffset = null;
+      }
+      break;
+    }
+    case 'libero': {
+      // Libero ALWAYS goes for first touch and dives if needed
+      let b2=G.ball;
+      let land2=predictLanding();
+      let tx2=Math.max(-COURT_W+1,Math.min(COURT_W-1,land2.x));
+      let tz2=side===1?Math.max(0.5,Math.min(COURT_D-0.5,land2.z)):Math.max(-(COURT_D-0.5),Math.min(-0.5,land2.z));
+      moveTo(p, tx2, 0, tz2, spd*2.2);
+      let dL=dist3(p,b2);
+      if(!p.diving&&dL<5.5&&b2.y<2.5&&canTouch(p)&&dL>1.4) startDive(p, b2.x, b2.z);
+      let dNow2=dist3(p,b2);
+      if(dNow2<2.0&&canTouch(p))doBump(p,b2);
+      break;
+    }
+    case 'net_guard': {
+      // MB holds centre net, ready to block or attack
+      moveTo(p, 0, 0, side===1?1.2:-1.2, spd*0.9);
+      break;
+    }
+    case 'quick_attack': {
+      // MB: sprint to ball immediately if quick set, otherwise hold near-net position
+      let bq = G.ball;
+      let setterR = side===1 ? G.p1b : G.p2b;
+      let qz = side===1 ? 0.9 : -0.9;
+      if (bq.setFloat && bq._quickSet) {
+        // Quick set — SPRINT hard to ball, jump immediately
+        moveTo(p, bq.x + (side===1?-0.5:0.5), 0, qz, spd*3.0);
+        let dq = dist3(p, bq);
+        if (p.onGround && dq < 3.5) { p.vy=0.52; p.onGround=false; spawnDust(p); }
+        if (dq < 1.9 && canTouch(p)) doSpike(p, bq);
+      } else if (bq.setFloat && !bq._quickSet) {
+        // WS set — MB hangs near net as backup option
+        moveTo(p, setterR.x+(side===1?-1.5:1.5), 0, qz, spd*1.2);
+        let dq2=dist3(p,bq);
+        // Still spike if somehow close and nobody else got it
+        if(bq.lastPlayer!==p && dq2<2.0 && canTouch(p)){
+          if(p.onGround){p.vy=0.50;p.onGround=false;spawnDust(p);}
+          if(dq2<1.7&&canTouch(p))doAICrossSpike(p,bq);
+        }
+      } else {
+        // Ball not set yet — stay near net ready
+        moveTo(p, 0, 0, qz, spd*1.0);
+      }
+      break;
+    }
+    case 'spiker': {
+      let spikeZ2 = side===1 ? Math.min(b.z+0.8, COURT_D-0.5) : Math.max(b.z-0.8, -(COURT_D-0.5));
+      let approachX2 = b.x + (b.x >= 0 ? -1.2 : 1.2);
+      moveTo(p, approachX2, 0, spikeZ2, spd*1.6);
+      let ds = dist3(p, b);
+      if (p.onGround && ds < 3.5 && b.y > 0.5) { p.vy=0.52; p.onGround=false; spawnDust(p); }
+      if (!p.onGround && ds < 2.2 && canTouch(p)) doAICrossSpike(p, b);
+      break;
+    }
+    case 'ready':
+    case 'support':
+    default: {
+      // Hold back court position
+      let bkZ = side===1 ? 5 : -5;
+      moveTo(p, p.x>0?3:-3, 0, bkZ, spd*0.4);
+      break;
+    }
+  }
+}
+
+function runCpuPartner(setter, libero, mb, human) {
+  // Setter logic
+  let b=G.ball, side=1;
+  let onSide=b.z>0;
+  let touches=b.lastSide===1?b.sideHits:0;
+  let spd=0.30;
+  let cpu = cpuProfile();
+
+  // Setter (p1b)
+  setter.aiRole = touches===1?'setter':touches===2?'support':'setter';
+  if(!onSide){
+    moveTo(setter, human.x>0?-3:3, 0, 6.5, spd*0.5);
+  } else if(touches===0){
+    // Get to set position, let libero receive
+    moveTo(setter, 0, 0, 3.0, spd);
+  } else if(touches===1){
+    moveTo(setter, b.x, 0, b.z+0.3, spd);
+    let d=dist3(setter,b);
+    // Only set if ball has been received first (not directly off a serve)
+    if(b.sideHits>=1&&d<1.7&&canTouch(setter)){if(setter.onGround&&b.y>1.4){setter.vy=0.50;setter.onGround=false;spawnDust(setter);}if(d<1.5&&canTouch(setter))doSet(setter,b);}
+  } else if(touches===2){
+    moveTo(setter, setter.x>0?3:-3, 0, 5, spd*0.4);
+  }
+
+  // ── LIBERO: ALWAYS FIRST TOUCH — dive if needed ──
+  libero.aiRole = touches===0?'receiver':'support';
+  if(!onSide){
+    // Ball on opponent side — get into receive position
+    let land=predictLanding();
+    let tx=Math.max(-COURT_W+1, Math.min(COURT_W-1, land.x + rn(-cpu.readErr, cpu.readErr)));
+    let tz=Math.max(4.0, Math.min(COURT_D-0.5, Math.abs(land.z)));
+    moveTo(libero, tx, 0, tz*(libero.side===1?1:-1), spd*0.9);
+  } else if(touches===0){
+    // Sprint hard to ball — libero ALWAYS takes first touch
+    let land=predictLanding();
+    let tx=Math.max(-COURT_W+1, Math.min(COURT_W-1, land.x));
+    let tz=Math.max(0.5, Math.min(COURT_D-0.5, land.z));
+    let dLib=dist3(libero,b);
+    let humanDist=dist3(G.p1a,b);
+    let humanGoingForIt = humanDist < dLib*0.85 || keys['KeyJ']; // human is closer OR pressing J
+    if(!humanGoingForIt) {
+      moveTo(libero, tx, 0, tz, spd*2.2); // full sprint to receive
+      // Dive if close but not quite in range
+      if(!libero.diving && dLib < 5.5 && b.y < 2.5 && canTouch(libero) && Math.random()<cpu.diveChance){
+        if(dLib > 1.4) startDive(libero, b.x, b.z);
+      }
+      let dNow=dist3(libero,b);
+      if(dNow<2.0&&canTouch(libero))doBump(libero,b);
+    } else {
+      // Human going for it — libero gets to set position instead
+      moveTo(libero, 0, 0, 10, spd*0.8);
+    }
+  } else {
+    // After first touch — move to back court coverage
+    moveTo(libero, 0, 0, COURT_D-2, spd*0.5);
+  }
+
+  // ── MB (p1d) LOGIC ──
+  let spikeInFromOpp = b.sideHits>=1 && !b.setFloat && b.vz > 0.7 && b.z < 0;
+  if (!onSide) {
+    // Ball on opponent side — MB holds net centre, ready to block
+    mb.aiRole = spikeInFromOpp ? 'blocker' : 'net_guard';
+    if (spikeInFromOpp) {
+      // Sprint to intercept at net
+      let mbBX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, b.x));
+      moveTo(mb, mbBX, 0, 0.4, spd*2.2);
+      let frMB = Math.abs(b.z) / (Math.abs(b.vz)*0.28 + 0.001);
+      if (mb.onGround && frMB < 22 && frMB > 1 && Math.abs(mb.x - mbBX) < 3.5) {
+        mb.vy = 0.58; mb.onGround = false; spawnDust(mb); mb.state='spike'; mb.frame=0;
+      }
+      if (!mb.onGround && dist3(mb,b) < 2.8 && canTouch(mb) && b.vz > 0) {
+        registerTouch(mb, b);
+        b.vz = -(1.8 + Math.random()*1.0); b.vy = -0.2; b.vx = rn(-1.5,1.5);
+        b.setFloat = false; b.glow = 20;
+        spawnHit(b.x,b.y,b.z,'#ffffaa',1.6); doShake(6); showAnn('BLOCK!','');
+      }
+    } else {
+      moveTo(mb, 0, 0, 1.2, spd*0.9);
+    }
+  } else if (touches === 1) {
+    // Setter is about to set — MB gets to quick-attack position
+    mb.aiRole = b._quickSet ? 'quick_attack' : 'net_guard';
+    if (b._quickSet) {
+      moveTo(mb, b.x + (b.x < 0 ? 0.5 : -0.5), 0, 0.9, spd*3.0);
+      let dMB = dist3(mb, b);
+      if (mb.onGround && dMB < 3.5) { mb.vy=0.52; mb.onGround=false; spawnDust(mb); }
+      if (dMB < 1.9 && canTouch(mb)) doAICrossSpike(mb, b);
+    } else {
+      // WS set — hold position as decoy near net
+      moveTo(mb, setter.x + (setter.x < 0 ? -1.5 : 1.5), 0, 1.0, spd*1.2);
+    }
+  } else if (touches === 2) {
+    // Set done — MB holds spike-ready position
+    mb.aiRole = 'net_guard';
+    moveTo(mb, setter.x + (human.x < 0 ? -2 : 2), 0, 1.0, spd*1.0);
+  } else {
+    // Default — centre net
+    mb.aiRole = 'net_guard';
+    moveTo(mb, 0, 0, 1.2, spd*0.8);
+  }
+
+  // ── DOUBLE BLOCK: MB + setter jump together ──
+  let spikeIncoming = b.sideHits>=1 && !b.setFloat && b.vz > 0.7 && b.z < 0;
+  if (!onSide && spikeIncoming) {
+    setter.aiRole = 'blocker';
+    let centreX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, b.x));
+    // Setter offsets from MB to form wall
+    let setterBX = centreX + (centreX >= 0 ? -1.8 : 1.8);
+    setterBX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, setterBX));
+    moveTo(setter, setterBX, 0, 0.4, spd*2.2);
+    let arr = Math.abs(b.z) / (Math.abs(b.vz)*0.28 + 0.001);
+    // Jump at same time as MB (24 frames window, no alignment check)
+    if (setter.onGround && arr < 24 && arr > 0) {
+      setter.vy=0.60; setter.onGround=false; spawnDust(setter);
+      setter.state='spike'; setter.frame=0;
+    }
+    if (!setter.onGround && dist3(setter,b) < 2.6 && canTouch(setter) && b.vz > 0) {
+      let xMissS = Math.abs(setter.x - b.x) > 2.2;
+      let timingMissS = Math.abs(setter.y - b.y + 1.0) > 1.8;
+      if (!xMissS && !timingMissS) {
+        let cleanS = Math.random() < 0.60; // setter slightly worse blocker than MB
+        registerTouch(setter,b);
+        if (cleanS) {
+          b.vz=-(2.0+Math.random()*1.2); b.vy=-0.3; b.vx=rn(-2.0,2.0);
+          spawnHit(b.x,b.y,b.z,'#ffffaa',1.8); doShake(7); showAnn('BLOCK!','');
+        } else {
+          b.vz=-( 0.5+Math.random()*0.4); b.vy=0.8; b.vx=rn(-0.8,0.8);
+          spawnHit(b.x,b.y,b.z,'rgba(255,200,100,0.8)',0.8);
+        }
+        b.setFloat=false; b.glow=14;
+      }
+    }
+  }
+}
+
+function runCpuPartnerOLD(p, human) {
+  let b=G.ball, side=1;
+  let onSide=b.z>0;
+  let touches=b.lastSide===1?b.sideHits:0;
+  let spd=0.30;
+  if(!onSide){moveTo(p,human.x>0?-3:3,0,6.5,spd*0.5);return;}
+  let dp=dist3(p,b), dh=dist3(human,b);
+  if(touches===0){
+    if(canTouch(p)){moveTo(p,b.x,0,b.z,spd);if(dp<2.0&&canTouch(p))doBump(p,b);}
+    else{moveTo(p,human.x>0?-2.5:2.5,0,2.2,spd);}
+  } else if(touches===1){
+    moveTo(p,b.x,0,b.z+0.3,spd);
+    let d=dist3(p,b);
+    if(d<1.7&&canTouch(p)){if(p.onGround&&b.y>1.4){p.vy=0.65;p.onGround=false;spawnDust(p);}if(d<1.5&&canTouch(p))doSet(p,b);}
+  } else if(touches===2){
+    let d=dist3(p,b);
+    if(canTouch(p)||p.onGround){let apX=b.x+(b.x>=0?-1.2:1.2);moveTo(p,apX,0,b.z+(p.side===1?0.8:-0.8),spd*1.6);if(d<3.5&&p.onGround&&b.y>0.5){p.vy=0.52;p.onGround=false;spawnDust(p);}if(!p.onGround&&d<2.2&&canTouch(p))doAICrossSpike(p,b);}
+    else{moveTo(p,p.x>0?3:-3,0,6,spd*0.4);}
+  }
+  // Partner also blocks if spike incoming from opponent side
+  let spikeIncoming = b.sideHits>=1 && !b.setFloat && b.vz > 0.7 && b.z < 0;
+  if (!onSide && spikeIncoming) {
+    p.aiRole = 'blocker';
+    let blockX = Math.max(-COURT_W+0.5, Math.min(COURT_W-0.5, b.x));
+    moveTo(p, blockX, 0, 0.5, spd*1.3);
+    let arrival = Math.abs(b.z - 0.5) / (Math.abs(b.vz)*0.55 + 0.01);
+    if (p.onGround && arrival < 16 && dist3(p,b) < 4.0) { p.vy=0.85; p.onGround=false; spawnDust(p); }
+    if (!p.onGround && dist3(p,b) < 1.8 && canTouch(p)) {
+      registerTouch(p, b);
+      b.vz = -(2.0+Math.random()*0.8); b.vy=0.8; b.vx=rn(-1,1); b.setFloat=false; b.glow=16;
+      spawnHit(b.x,b.y,b.z,'#ffffff',1.2); doShake(5);
+    }
+  }
+}
+
+function moveTo(p, tx, ty, tz, spd) {
+  let dx=tx-p.x, dz=tz-p.z;
+  let d=Math.sqrt(dx*dx+dz*dz);
+  if(d>0.1){p.vx=(dx/d)*spd;p.vz=(dz/d)*spd;p.facing=dx>0?1:-1;p.state='walk';}
+  else{p.vx=0;p.vz=0;p.state='idle';}
+}
+
+// ── SCORING ──
+function triggerFault(side,msg){let scorer=side===1?2:1;G.faultTimer=100;showFault(msg);scorePoint(scorer);}
+function showFault(msg){let e=document.getElementById('fault-msg');e.textContent=msg;e.classList.add('show');}
+function hideFault(){document.getElementById('fault-msg').classList.remove('show');}
+function scorePoint(scorer){
+  if(G.state==='celebrate')return;
+  let idx=scorer-1;G.score[idx]++;G.servingSide=scorer;G.state='celebrate';G.celebTimer=110;
+  showAnn((scorer===1?'TEAM SAKURA':'TEAM RYUU')+' SCORES!','');updHUD();
+  let other=1-idx;
+  if(G.score[idx]>=G.scoreTarget&&G.score[idx]-G.score[other]>=2){
+    G.sets[idx]++;G.score=[0,0];
+    if(G.sets[idx]>=G.setsTarget){endGame(scorer);return;}
+    G.set++;document.getElementById('h-set').textContent=G.set;updHUD();
+  }
+}
+function endGame(winner){
+  let nm=winner===1?'TEAM SAKURA':'TEAM RYUU';
+  document.getElementById('ov-title').textContent=nm+' WINS!';
+  document.getElementById('ov-sub').textContent='MATCH COMPLETE · '+G.sets[0]+'-'+G.sets[1];
+  setTimeout(()=>{document.getElementById('s-game').classList.remove('on');document.getElementById('s-over').classList.add('on');},1800);
+}
+function updHUD(){document.getElementById('h-s1').textContent=G.score[0];document.getElementById('h-s2').textContent=G.score[1];document.getElementById('h-set1').textContent='Sets: '+G.sets[0];document.getElementById('h-set2').textContent='Sets: '+G.sets[1];updTouchDisplay();}
+function updTouchDisplay(){let b=G.ball,t=b.lastSide===1?b.sideHits:0;for(let i=1;i<=3;i++){let el=document.getElementById('td'+i);el.className='td';if(i<=t)el.classList.add(t===3?'warn':'used');}}
+let annTimer=null;
+function showAnn(t,s){let e=document.getElementById('announce'),sa=document.getElementById('sub-ann');e.textContent=t;e.classList.add('show');sa.textContent=s;s?sa.classList.add('show'):sa.classList.remove('show');if(annTimer)clearTimeout(annTimer);annTimer=setTimeout(()=>{e.classList.remove('show');sa.classList.remove('show');},1600);}
+function doShake(s){shakeT=s;}
+
+// ── BALL ARROW INDICATOR ──
+function updateBallArrow(){
+  let b=G.ball, el=document.getElementById('ball-arrow');
+  let cam=getCam();
+  let pt=project(b.x,b.y,b.z,cam.x,cam.y,cam.z,cam);
+  let hudEl=document.getElementById('ball-hud');
+  let upEl=document.getElementById('ball-dir-up');
+  let dnEl=document.getElementById('ball-dir-down');
+
+  if(!pt){
+    // Ball behind camera — show directional arrow
+    el.style.display='block';
+    let dx=b.x-cam.x, dz=b.z-cam.z;
+    let ang=Math.atan2(dx,dz)*180/Math.PI;
+    let sx=CW/2+Math.sin(ang*Math.PI/180)*160;
+    let sy=CH/2+Math.cos(ang*Math.PI/180)*100;
+    el.style.left=Math.max(20,Math.min(CW-40,sx))+'px';
+    el.style.top=Math.max(20,Math.min(CH-40,sy))+'px';
+    el.style.transform=`rotate(${ang+90}deg)`;
+    if(hudEl)hudEl.style.display='none';
+  } else {
+    el.style.display='none';
+    // Ball visible — show up/down guide if off screen vertically
+    if(hudEl){
+      if(pt.y<30){hudEl.style.display='flex';upEl.style.opacity='0.85';dnEl.style.opacity='0';}
+      else if(pt.y>CH-30){hudEl.style.display='flex';upEl.style.opacity='0';dnEl.style.opacity='0.85';}
+      else{hudEl.style.display='none';upEl.style.opacity='0';dnEl.style.opacity='0';}
+    }
+  }
+}
+
+// ── PARTICLES ──
+function spawnHit(wx,wy,wz,col,pw){
+  let cam=getCam(),pt=project(wx,wy,wz,cam.x,cam.y,cam.z,cam);
+  if(!pt)return;
+  for(let i=0;i<Math.floor(5+pw*7);i++){let a=Math.random()*Math.PI*2,sp=rn(1,3)*pw;particles.push({x:pt.x,y:pt.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1,col,life:rni(12,26),maxLife:26,sz:rn(2,4+pw*1.5)});}
+}
+function spawnDust(p){
+  let cam=getCam(),pt=project(p.x,p.y,p.z,cam.x,cam.y,cam.z,cam);
+  if(!pt)return;
+  for(let i=0;i<5;i++)particles.push({x:pt.x+rn(-8,8),y:pt.y,vx:rn(-1,1),vy:rn(-1.2,-0.2),col:'rgba(220,180,60,0.5)',life:18,maxLife:18,sz:rn(3,6)});
+}
+function spawnScore(wx,wy,wz){
+  let cam=getCam(),pt=project(wx,wy,wz,cam.x,cam.y,cam.z,cam);
+  let px=pt?pt.x:CW/2,py=pt?pt.y:CH/2;
+  let cs=['#ff4488','#44aaff','#ffe040','#44ffaa','#ff8844'];
+  for(let i=0;i<30;i++)particles.push({x:px,y:py,vx:rn(-7,7),vy:rn(-12,-2),col:cs[rni(0,4)],life:rni(28,55),maxLife:55,sz:rni(4,9)});
+}
+function updateParticles(){particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;});particles=particles.filter(p=>p.life>0);}
+
+// ── CAMERA ──
+function getCam2(sw, sh, ox, oy) {
+  // P2's camera — mirrors getCam but from p2a perspective facing +z (toward their net)
+  let p = G.p2a;
+  let bob = p.state==='walk' ? Math.sin(tick*0.18)*0.04 : 0;
+  if (settings.pov === 'fp') {
+    let eyeY = p.y + EYE_H + (p.onGround ? 0 : p.y * 0.3);
+    // P2 faces +z direction — invert yaw and z lookAt
+    let cam2 = { x: p.x, y: eyeY + bob, z: p.z,
+      lookObj: look2, sw, sh, ox, oy };
+    return cam2;
+  } else if (settings.pov === 'tp') {
+    let cx = p.x * 0.5;
+    let cy = p.y + 4.0 + bob*0.2;
+    let cz = p.z - 8.0; // behind P2 (their side is -z)
+    let tx = p.x * 0.3, ty = p.y + 1.0, tz = p.z + 2.0;
+    let basis = buildCamBasis(cx, cy, cz, tx, ty, tz);
+    return { x:cx, y:cy, z:cz, ...basis, sw, sh, ox, oy };
+  } else {
+    // Broadcast from opposite side
+    let cx = COURT_W + 4, cy = 8.0, cz = 0;
+    let basis = buildCamBasis(cx, cy, cz, 0, 1.0, 0);
+    return { x:cx, y:cy, z:cz, ...basis, sw, sh, ox, oy };
+  }
+}
+
+function getCam() {
+  let p = G.p1a;
+  let bob = p.state==='walk' ? Math.sin(tick*0.18)*0.04 : 0;
+
+  if (settings.pov === 'fp') {
+    // ── FIRST PERSON: eyes of p1a ──
+    let eyeY = p.y + EYE_H + (p.onGround ? 0 : p.y * 0.3);
+    return { x: p.x, y: eyeY + bob, z: p.z };
+
+  } else if (settings.pov === 'tp') {
+    // ── THIRD PERSON: behind & above player, looking at player/net ──
+    let cx = p.x * 0.5;
+    let cy = p.y + 4.0 + bob*0.2;
+    let cz = p.z + 8.0; // behind player (our side is +z)
+    // Look toward a point just in front of player (toward net at z=0)
+    let tx = p.x * 0.3;
+    let ty = p.y + 1.0;
+    let tz = p.z - 2.0; // look forward toward net
+    let basis = buildCamBasis(cx, cy, cz, tx, ty, tz);
+    return { x:cx, y:cy, z:cz, ...basis };
+
+  } else {
+    // ── BROADCAST: high flat side camera showing full court ──
+    // Position: to the side, high up, looking straight across at net centre
+    let cx = -COURT_W - 4;
+    let cy = 8.0;
+    let cz = 0; // level with net centre depth
+    // Look at centre of court, slightly below eye level
+    let tx = 0, ty = 1.0, tz = 0;
+    let basis = buildCamBasis(cx, cy, cz, tx, ty, tz);
+    return { x:cx, y:cy, z:cz, ...basis };
+  }
+}
+
+// ── RENDER ──
+function renderHalf(cam, playerList, skipServeArc) {
+  drawSky(cam); drawCourt(cam); drawNet(cam);
+  let objs = playerList.map(p=>({data:p,dz:p.z-cam.z}));
+  objs.sort((a,b)=>a.dz-b.dz);
+  objs.forEach(o=>drawPlayer(o.data,cam));
+  if(!skipServeArc&&G.state==='serve'&&G.serveCharging)drawServeArc(cam);
+  drawBall(cam);
+  drawParticles();
+}
+
+function render() {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  if (twoPlayer) {
+    const HW = Math.floor(CW/2);
+
+    // ── P1 LEFT HALF ──
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0,0,HW,CH); ctx.clip();
+    let cam1 = getCam();
+    renderHalf(cam1, settings.pov==='fp'?[G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d]:[G.p1a,G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d], false);
+    drawFlowVignette(0, HW);
+    ctx.restore();
+
+    // ── DIVIDER ──
+    ctx.fillStyle='#000'; ctx.fillRect(HW-1,0,2,CH);
+
+    // ── P2 RIGHT HALF ──
+    ctx.save();
+    ctx.beginPath(); ctx.rect(HW,0,HW,CH); ctx.clip();
+    ctx.translate(HW, 0);
+    let cam2 = getCam2(HW, CH, 0, 0);
+    renderHalf(cam2, settings.pov==='fp'?[G.p2b,G.p2c,G.p2d,G.p1a,G.p1b,G.p1c,G.p1d]:[G.p2a,G.p2b,G.p2c,G.p2d,G.p1a,G.p1b,G.p1c,G.p1d], true);
+    ctx.restore();
+
+    // ── SCREEN LABELS ──
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.fillRect(0,0,HW,18); ctx.fillRect(HW,0,HW,18);
+    ctx.font="bold 9px 'M PLUS Rounded 1c'"; ctx.textAlign='center';
+    ctx.fillStyle='#ff88bb'; ctx.fillText('P1 — SAKURA',HW/2,13);
+    ctx.fillStyle='#88ccff'; ctx.fillText('P2 — RYUU',HW+HW/2,13);
+
+  } else {
+    let cam = getCam();
+    renderHalf(cam, settings.pov==='fp'?[G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d]:[G.p1a,G.p1b,G.p1c,G.p1d,G.p2a,G.p2b,G.p2c,G.p2d], false);
+    drawFlowVignette(0, CW);
+  }
+
+  // Block indicator
+  if (G.state==='play') {
+    let pb=G.p1a, bb=G.ball;
+    let nearNet2 = pb.z < 2.5;
+    let spikeIn2 = !bb.setFloat && bb.vz > 0.8 && bb.z < 0;
+    if (nearNet2 && spikeIn2 && !pb.onGround) {
+      let pulse2 = 0.6+0.4*Math.sin(tick*0.35);
+      ctx.globalAlpha = pulse2*0.85;
+      ctx.fillStyle='#ffffaa';
+      ctx.font="bold 13px 'M PLUS Rounded 1c'";ctx.textAlign='center';
+      ctx.fillText('🤚 BLOCK! (SPACE / L)',CW/2,CH-52);
+      ctx.globalAlpha=1;
+    }
+  }
+  ctx.restore();
+  drawCompass();
+}
+
+function drawFlowVignette(ox, w) {
+  if (flowState.alpha <= 0) return;
+  {
+    let a = flowState.alpha;
+    // Dark vignette around edges
+    let vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.18, CW/2, CH/2, CW*0.72);
+    vig.addColorStop(0, `rgba(0,0,0,0)`);
+    vig.addColorStop(0.5, `rgba(0,0,30,${a*0.55})`);
+    vig.addColorStop(1, `rgba(0,0,60,${a*0.95})`);
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+    // Subtle blue-purple tint on whole screen
+    ctx.fillStyle = `rgba(10,0,80,${a*0.28})`;
+    ctx.fillRect(0, 0, CW, CH);
+    // Pulse ring at crosshair
+    let pulse = 0.5 + 0.5*Math.sin(tick*0.18);
+    ctx.strokeStyle = `rgba(180,100,255,${a*0.5*pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(CW/2, CH/2, 28+pulse*8, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    // "SPIKE NOW" pulse text during flow
+    if (a > 0.6) {
+      let tp = 0.5 + 0.5*Math.sin(tick*0.25);
+      ctx.globalAlpha = (a-0.6)*2.5 * tp;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = "bold 13px 'M PLUS Rounded 1c'";
+      ctx.textAlign = 'center';
+      ctx.letterSpacing = '4px';
+      ctx.fillText('⚡ JUMP & SPIKE ⚡', CW/2, CH/2 + 52);
+      // Aim arrow indicator
+      if (G.spikeAimActive || Math.abs(G.spikeAim) > 0.05) {
+        let aimAlpha = (a-0.3)*1.4*tp;
+        ctx.globalAlpha = Math.min(1, aimAlpha);
+        let aimPx = CW/2 + G.spikeAim * 120;
+        // Aim bar background
+        ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.roundRect(CW/2-130,CH/2+62,260,12,6);ctx.fill();
+        // Aim fill
+        let aimGrad = ctx.createLinearGradient(CW/2-120,0,CW/2+120,0);
+        aimGrad.addColorStop(0,'#4488ff');aimGrad.addColorStop(0.5,'#ffffff');aimGrad.addColorStop(1,'#ff4444');
+        ctx.fillStyle=aimGrad;ctx.beginPath();ctx.roundRect(CW/2-120,CH/2+64,240,8,4);ctx.fill();
+        // Aim cursor
+        ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(aimPx,CH/2+68,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#000';ctx.beginPath();ctx.arc(aimPx,CH/2+68,4,0,Math.PI*2);ctx.fill();
+        // Labels
+        ctx.font="8px 'M PLUS Rounded 1c'";ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,0.7)';
+        ctx.fillText('LINE',CW/2-128,CH/2+76);
+        ctx.textAlign='right';ctx.fillText('CROSS',CW/2+128,CH/2+76);
+        ctx.textAlign='center';
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function drawServeArc(cam) {
+  let srv = G.p1a;
+  let dir = -1; // p1 serves toward -z
+  let power = G.serveCharge || 0;
+  let vz = dir * (0.8 + power * 3.7);
+  let vy = 3.5 - power * 1.2;
+  // Simulate arc
+  let bx=srv.x, by=2.5, bz=srv.z;
+  let bvz=vz, bvy=vy;
+  let pts=[];
+  for(let i=0;i<120;i++){
+    bvy -= GRAV*0.36; by+=bvy; bz+=bvz*0.28; bx+=0;
+    if(by<=BALL_R+0.05) break;
+    if(i%3===0){
+      let pt=project(bx,by,bz,cam.x,cam.y,cam.z,cam);
+      if(pt)pts.push({pt,i});
+    }
+  }
+  // Draw dotted arc
+  for(let k=0;k<pts.length;k++){
+    let {pt,i}=pts[k];
+    let alpha=0.6*(1-k/pts.length);
+    let r=Math.max(3,pt.scale*BALL_R*1.2);
+    // colour matches serve power
+    let col=power<0.4?`rgba(100,200,255,${alpha})`:power<0.7?`rgba(255,220,50,${alpha})`:`rgba(255,80,30,${alpha})`;
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(pt.x,pt.y,r*(k%2===0?1:0.4),0,Math.PI*2);ctx.fill();
+  }
+  // Landing spot marker
+  if(pts.length>0){
+    let last=pts[pts.length-1].pt;
+    // project landing x,z at ground
+    let landPt=project(bx,0,bz,cam.x,cam.y,cam.z,cam);
+    if(landPt){
+      let inBounds=Math.abs(bx)<=COURT_W&&Math.abs(bz)<=COURT_D;
+      ctx.strokeStyle=inBounds?'rgba(100,255,100,0.8)':'rgba(255,80,80,0.8)';
+      ctx.lineWidth=2;
+      let sr=Math.max(6,landPt.scale*0.5);
+      ctx.beginPath();ctx.arc(landPt.x,landPt.y,sr,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(landPt.x-sr*1.5,landPt.y);ctx.lineTo(landPt.x+sr*1.5,landPt.y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(landPt.x,landPt.y-sr*1.5);ctx.lineTo(landPt.x,landPt.y+sr*1.5);ctx.stroke();
+      ctx.lineWidth=1;
+    }
+  }
+}
+
+function drawCompass() {
+  let cc = document.getElementById('look-compass');
+  if (!cc) return;
+  let cx = cc.getContext('2d');
+  cx.clearRect(0,0,44,44);
+  cx.fillStyle = 'rgba(0,0,0,0.4)';
+  cx.beginPath(); cx.arc(22,22,20,0,Math.PI*2); cx.fill();
+  cx.strokeStyle = 'rgba(255,255,255,0.3)';
+  cx.lineWidth = 1;
+  cx.beginPath(); cx.arc(22,22,20,0,Math.PI*2); cx.stroke();
+  // Forward direction indicator (red = where you're looking)
+  let yaw = look.yaw;
+  let nx = Math.sin(yaw)*14, nz = -Math.cos(yaw)*14;
+  cx.strokeStyle = '#ff4444'; cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(22,22); cx.lineTo(22+nx,22+nz); cx.stroke();
+  cx.fillStyle='#ff4444'; cx.beginPath(); cx.arc(22+nx,22+nz,3,0,Math.PI*2); cx.fill();
+  // Net marker (blue dot at z=0)
+  cx.fillStyle='rgba(100,200,255,0.8)'; cx.beginPath(); cx.arc(22,22-14,3,0,Math.PI*2); cx.fill();
+  // Labels
+  cx.fillStyle='rgba(255,255,255,0.5)'; cx.font='6px sans-serif'; cx.textAlign='center';
+  cx.fillText('NET',22,10);
+}
+
+function drawSky(cam) {
+  let grad = ctx.createLinearGradient(0,0,0,CH*0.58);
+  grad.addColorStop(0, `hsl(${205+G.set*18},75%,${38+G.set*8}%)`);
+  grad.addColorStop(0.55, `hsl(${20+G.set*18},88%,58%)`);
+  grad.addColorStop(1, `hsl(${36},80%,68%)`);
+  ctx.fillStyle=grad; ctx.fillRect(0,0,CW,CH);
+  // Stylized anime bloom layer
+  let bloom = ctx.createLinearGradient(0, CH*0.05, 0, CH*0.7);
+  bloom.addColorStop(0, 'rgba(255,170,220,0.22)');
+  bloom.addColorStop(0.45, 'rgba(255,200,120,0.18)');
+  bloom.addColorStop(1, 'rgba(120,80,255,0.06)');
+  ctx.fillStyle = bloom; ctx.fillRect(0,0,CW,CH);
+  // Sun
+  ctx.save();
+  let sp=project(8,9,-15,cam.x,cam.y,cam.z,cam);
+  if(sp){let sg=ctx.createRadialGradient(sp.x,sp.y,2,sp.x,sp.y,60);sg.addColorStop(0,'rgba(255,255,200,1)');sg.addColorStop(0.4,'rgba(255,220,80,0.7)');sg.addColorStop(1,'rgba(255,180,0,0)');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sp.x,sp.y,60,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+  // Horizon ocean
+  let hz=project(0,0,-0.5,cam.x,cam.y,cam.z,cam);
+  if(hz){let og=ctx.createLinearGradient(0,hz.y-30,0,hz.y+15);og.addColorStop(0,'rgba(30,110,200,0)');og.addColorStop(0.5,'rgba(30,110,200,0.5)');og.addColorStop(1,'rgba(30,110,200,0)');ctx.fillStyle=og;ctx.fillRect(0,hz.y-30,CW,45);}
+  // Crowd silhouette band for TV-anime match vibe
+  if (hz) {
+    let y = hz.y + 8;
+    ctx.fillStyle = 'rgba(20,10,40,0.45)';
+    for (let i = 0; i < 56; i++) {
+      let x = i * 16 + ((tick * 0.2) % 16);
+      let h = 10 + Math.sin(i * 1.7 + tick * 0.02) * 2.5;
+      ctx.beginPath();
+      ctx.arc(x, y - h, 4, 0, Math.PI * 2);
+      ctx.fillRect(x - 3, y - h + 2, 6, 8);
+      ctx.fill();
+    }
+  }
+}
+
+function drawCourt(cam) {
+  // Draw sand floor — project a grid
+  // Near boundary
+  let nL=project(-COURT_W,0,COURT_D,cam.x,cam.y,cam.z,cam);
+  let nR=project( COURT_W,0,COURT_D,cam.x,cam.y,cam.z,cam);
+  let mL=project(-COURT_W,0,0,cam.x,cam.y,cam.z,cam);
+  let mR=project( COURT_W,0,0,cam.x,cam.y,cam.z,cam);
+  let fL=project(-COURT_W,0,-COURT_D,cam.x,cam.y,cam.z,cam);
+  let fR=project( COURT_W,0,-COURT_D,cam.x,cam.y,cam.z,cam);
+
+  // Our side sand
+  if(nL&&nR&&mL&&mR){
+    let grad=ctx.createLinearGradient(0,mL.y,0,nL.y);
+    grad.addColorStop(0,'#c89020');grad.addColorStop(0.5,'#dfa830');grad.addColorStop(1,'#f0cc58');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.moveTo(nL.x,nL.y);ctx.lineTo(nR.x,nR.y);ctx.lineTo(mR?mR.x:CW,mR?mR.y:CH*0.55);ctx.lineTo(mL?mL.x:0,mL?mL.y:CH*0.55);ctx.closePath();ctx.fill();
+  }
+  // Far side sand (darker)
+  if(mL&&mR&&fL&&fR){
+    ctx.fillStyle='#a87818';
+    ctx.beginPath();ctx.moveTo(mL.x,mL.y);ctx.lineTo(mR.x,mR.y);ctx.lineTo(fR.x,fR.y);ctx.lineTo(fL.x,fL.y);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.22)';
+    ctx.beginPath();ctx.moveTo(mL.x,mL.y);ctx.lineTo(mR.x,mR.y);ctx.lineTo(fR.x,fR.y);ctx.lineTo(fL.x,fL.y);ctx.closePath();ctx.fill();
+  }
+
+  // Court lines
+  ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
+  [[nL,nR],[fL,fR],[nL,fL],[nR,fR]].forEach(([a,b])=>{if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}});
+  // Mid line (net base)
+  if(mL&&mR){ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(mL.x,mL.y);ctx.lineTo(mR.x,mR.y);ctx.stroke();}
+  // Attack lines (3m)
+  let aL1=project(-COURT_W,0,3,cam.x,cam.y,cam.z,cam),aR1=project(COURT_W,0,3,cam.x,cam.y,cam.z,cam);
+  let aL2=project(-COURT_W,0,-3,cam.x,cam.y,cam.z,cam),aR2=project(COURT_W,0,-3,cam.x,cam.y,cam.z,cam);
+  ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.2;ctx.setLineDash([8,6]);
+  if(aL1&&aR1){ctx.beginPath();ctx.moveTo(aL1.x,aL1.y);ctx.lineTo(aR1.x,aR1.y);ctx.stroke();}
+  if(aL2&&aR2){ctx.beginPath();ctx.moveTo(aL2.x,aL2.y);ctx.lineTo(aR2.x,aR2.y);ctx.stroke();}
+  ctx.setLineDash([]);
+
+  // OUT boundary — bright boundary lines, same as court edges but emphasised
+  ctx.strokeStyle='rgba(255,80,80,0.55)';ctx.lineWidth=2.5;
+  // Near/far lines (back boundaries)
+  if(nL&&nR){ctx.beginPath();ctx.moveTo(nL.x,nL.y);ctx.lineTo(nR.x,nR.y);ctx.stroke();}
+  if(fL&&fR){ctx.beginPath();ctx.moveTo(fL.x,fL.y);ctx.lineTo(fR.x,fR.y);ctx.stroke();}
+  // Side lines
+  if(nL&&fL){ctx.beginPath();ctx.moveTo(nL.x,nL.y);ctx.lineTo(fL.x,fL.y);ctx.stroke();}
+  if(nR&&fR){ctx.beginPath();ctx.moveTo(nR.x,nR.y);ctx.lineTo(fR.x,fR.y);ctx.stroke();}
+}
+
+function drawNet(cam) {
+  // Sample net at multiple x positions across its width
+  let segs = 26;
+  let netPts = [];
+  for(let i=0;i<=segs;i++){
+    let wx = -COURT_W + (i/segs)*COURT_W*2;
+    let bot = project(wx, 0,     0, cam.x,cam.y,cam.z, cam);
+    let top = project(wx, NET_H, 0, cam.x,cam.y,cam.z, cam);
+    netPts.push({bot,top,wx});
+  }
+
+  // Draw net background fill (dark mesh body)
+  let visTop = netPts.filter(p=>p.top), visBot = netPts.filter(p=>p.bot);
+  if(visTop.length>1 && visBot.length>1){
+    ctx.fillStyle='rgba(200,180,120,0.18)';
+    ctx.beginPath();
+    visTop.forEach((p,i)=>i===0?ctx.moveTo(p.top.x,p.top.y):ctx.lineTo(p.top.x,p.top.y));
+    // go backwards along bottom
+    for(let i=visBot.length-1;i>=0;i--)ctx.lineTo(visBot[i].bot.x,visBot[i].bot.y);
+    ctx.closePath();ctx.fill();
+  }
+
+  // Vertical mesh lines
+  for(let p of netPts){
+    if(p.bot&&p.top){
+      ctx.strokeStyle='rgba(240,230,180,0.55)';ctx.lineWidth=1.0;
+      ctx.beginPath();ctx.moveTo(p.bot.x,p.bot.y);ctx.lineTo(p.top.x,p.top.y);ctx.stroke();
+    }
+  }
+  // Horizontal mesh lines (8 rows)
+  for(let row=0;row<=8;row++){
+    let wy = (row/8)*NET_H;
+    let pts = [];
+    for(let i=0;i<=segs;i++){
+      let wx=-COURT_W+(i/segs)*COURT_W*2;
+      let pt=project(wx,wy,0,cam.x,cam.y,cam.z,cam);
+      if(pt)pts.push(pt);
+    }
+    if(pts.length>1){
+      ctx.strokeStyle='rgba(240,230,180,0.5)';ctx.lineWidth=1.0;
+      ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+    }
+  }
+
+  // White top tape
+  {
+    let pts=[];
+    for(let i=0;i<=segs;i++){let wx=-COURT_W+(i/segs)*COURT_W*2;let pt=project(wx,NET_H,0,cam.x,cam.y,cam.z,cam);if(pt)pts.push({pt,i});}
+    if(pts.length>1){
+      // White base tape
+      ctx.strokeStyle='#fff';ctx.lineWidth=5;
+      ctx.beginPath();pts.forEach((p,idx)=>idx===0?ctx.moveTo(p.pt.x,p.pt.y):ctx.lineTo(p.pt.x,p.pt.y));ctx.stroke();
+      // Red/white stripes
+      for(let k=0;k<pts.length-1;k++){
+        if(Math.floor(pts[k].i/2)%2===0){
+          ctx.strokeStyle='#e02848';ctx.lineWidth=5;
+          ctx.beginPath();ctx.moveTo(pts[k].pt.x,pts[k].pt.y);ctx.lineTo(pts[k+1].pt.x,pts[k+1].pt.y);ctx.stroke();
+        }
+      }
+    }
+  }
+
+  // Posts — sample a few x positions near the sides
+  let postXs = [-COURT_W, COURT_W];
+  for(let px2 of postXs){
+    let pb=project(px2,0,0,cam.x,cam.y,cam.z,cam);
+    let pt2=project(px2,NET_H,0,cam.x,cam.y,cam.z,cam);
+    if(pb&&pt2){
+      let pw=Math.max(3,pb.scale*0.1);
+      ctx.strokeStyle='#d4c080';ctx.lineWidth=pw+4;
+      ctx.beginPath();ctx.moveTo(pb.x,pb.y);ctx.lineTo(pt2.x,pt2.y);ctx.stroke();
+      ctx.strokeStyle='#f0e0a0';ctx.lineWidth=pw;
+      ctx.beginPath();ctx.moveTo(pb.x,pb.y);ctx.lineTo(pt2.x,pt2.y);ctx.stroke();
+    }
+  }
+}
+
+// ── BALL FIRST PERSON ──
+function drawBall(cam) {
+  let b = G.ball;
+  // Trail
+  b.trail.forEach((t,i)=>{
+    let pt=project(t.x,t.y,t.z,cam.x,cam.y,cam.z,cam);
+    if(!pt)return;
+    ctx.globalAlpha=(t.t/12)*0.3;ctx.fillStyle='#ff8040';
+    let r=Math.max(2,pt.scale*BALL_R*(0.3+i/b.trail.length*0.7));
+    ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  let pt=project(b.x,b.y,b.z,cam.x,cam.y,cam.z,cam);
+  if(!pt)return;
+  let r=Math.max(8,pt.scale*BALL_R*1.8);// boosted size for visibility
+
+  // Glow
+  if(b.glow>0){let ga=b.glow/24*0.6;let gg=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,r*3);gg.addColorStop(0,`rgba(255,255,130,${ga})`);gg.addColorStop(1,'rgba(255,200,0,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(pt.x,pt.y,r*3,0,Math.PI*2);ctx.fill();}
+
+  // ── HEIGHT INDICATOR RING + SHADOW ──
+  let shp=project(b.x,0,b.z,cam.x,cam.y,cam.z,cam);
+  if(shp){
+    // Shadow — shrinks and fades as ball rises
+    let shadowAlpha = Math.max(0, 0.4 - b.y * 0.03);
+    let shadowR = Math.max(r*0.3, r*1.1 - b.y*0.08*pt.scale);
+    ctx.globalAlpha = shadowAlpha;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();ctx.ellipse(shp.x,shp.y,shadowR,shadowR*0.35,0,0,Math.PI*2);ctx.fill();
+
+    // Height indicator ring — glows brighter the higher the ball
+    // Colour: green=low, yellow=mid, red=spike height
+    let heightRatio = Math.min(1, b.y / 5.0);
+    let ringR = r * 1.6 + b.y * pt.scale * 0.08;
+    let ringAlpha = Math.min(0.9, 0.3 + heightRatio * 0.6);
+    // Lerp colour green→yellow→red
+    let rC = Math.floor(heightRatio < 0.5 ? heightRatio*2*255 : 255);
+    let gC = Math.floor(heightRatio < 0.5 ? 200 : (1-heightRatio)*2*200);
+    let ringCol = `rgba(${rC},${gC},20,${ringAlpha})`;
+
+    ctx.globalAlpha = ringAlpha;
+    ctx.strokeStyle = ringCol;
+    ctx.lineWidth = Math.max(1.5, pt.scale * 0.06);
+    ctx.beginPath();ctx.ellipse(shp.x,shp.y,ringR,ringR*0.32,0,0,Math.PI*2);ctx.stroke();
+
+    // Dashed inner ring (tighter, always visible)
+    ctx.setLineDash([Math.max(2,pt.scale*0.08), Math.max(2,pt.scale*0.06)]);
+    ctx.strokeStyle = `rgba(255,255,255,${ringAlpha*0.5})`;
+    ctx.lineWidth = Math.max(1, pt.scale*0.04);
+    ctx.beginPath();ctx.ellipse(shp.x,shp.y,ringR*0.55,ringR*0.18,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Vertical drop line from ball to ground (shows x/z position clearly)
+    if(b.y > 0.5){
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = ringCol;
+      ctx.lineWidth = Math.max(1, pt.scale * 0.03);
+      ctx.setLineDash([Math.max(2,pt.scale*0.06), Math.max(2,pt.scale*0.06)]);
+      ctx.beginPath();ctx.moveTo(pt.x,pt.y);ctx.lineTo(shp.x,shp.y);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+  }
+
+  // Ball
+  let bg=ctx.createRadialGradient(pt.x-r*0.3,pt.y-r*0.3,r*0.1,pt.x,pt.y,r);
+  bg.addColorStop(0,'#ffffff');bg.addColorStop(0.3,'#ff6020');bg.addColorStop(1,'#cc1800');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fill();
+
+  let rot=b.x*0.4+b.z*0.2+tick*0.04;
+  ctx.save();ctx.translate(pt.x,pt.y);ctx.rotate(rot);
+  ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=Math.max(0.5,r*0.09);
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r,0);ctx.bezierCurveTo(-r*.5,-r*.5,r*.5,-r*.5,r,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r,0);ctx.bezierCurveTo(-r*.5,r*.5,r*.5,r*.5,r,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-r);ctx.bezierCurveTo(r*.5,-r*.5,r*.5,r*.5,0,r);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.ellipse(-r*.28,-r*.28,r*.26,r*.16,Math.PI/4,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+// ── PLAYER DRAW (first person — 3D projected) ──
+function drawPlayer(p, cam) {
+  let pt = project(p.x, p.y, p.z, cam.x, cam.y, cam.z, cam);
+  if (!pt) return;
+  let sc = pt.scale;
+  let bs = Math.max(0.22, Math.min(2.0, sc * 0.022));
+  function s(v) { return v * bs; }
+
+  let gp = project(p.x, 0, p.z, cam.x, cam.y, cam.z, cam);
+  if(gp){ctx.globalAlpha=0.18;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(gp.x,gp.y,s(13),s(4),0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+
+  // Bob height — rises with jump
+  let airLift = p.onGround ? 0 : s(Math.max(3, p.y * 42));
+
+  // Dive transform
+  if(p.state==='dive'||p.diving){ ctx.save(); ctx.rotate(-0.52); }
+
+  let fx = gp ? gp.x : pt.x;
+  let fy = gp ? gp.y : pt.y;
+  ctx.save(); ctx.translate(fx, fy - airLift);
+
+  let char = getCharacter(p.side, p.vpos);
+  drawAnimePlayer(ctx, s, char, p);
+
+  // Role badge
+  if(p.role==='ai'){
+    let label={receiver:'RCV',setter:'SET',spiker:'SPK',support:'BCK',defend:'DEF',blocker:'BLK',libero:'LIB',ready:'SET'}[p.aiRole]||'CPU';
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();ctx.rect(-s(10),-s(90),s(20),s(10));ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font=`${Math.max(6,s(6))}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText(label,0,-s(82));
+  }
+
+  ctx.restore();
+  if(p.state==='dive'||p.diving){ ctx.restore(); }
+}
+
+function getCharacter(side, vpos) {
+  // Returns character definition: hair colour, style, skin, eye colour
+  const chars = {
+    '1_ws': { hair:'#ff6eb4', hairHL:'#ffaadd', hairStyle:'long_wavy', eye:'#dd44aa', skin:'#fde8d0', ribbon:'#cc0044', name:'Sakura' },
+    '1_s':  { hair:'#5a3a8a', hairHL:'#8a60c0', hairStyle:'long_straight', eye:'#7040c0', skin:'#fde0d8', ribbon:'#440088', name:'Yuki' },
+    '1_l':  { hair:'#d4a800', hairHL:'#f0cc40', hairStyle:'high_pony', eye:'#c8a000', skin:'#fde8d0', ribbon:'#aa7700', name:'Hana' },
+    '2_ws': { hair:'#d06820', hairHL:'#f09040', hairStyle:'twin_tails', eye:'#c06000', skin:'#fde8c8', ribbon:'#cc4400', name:'Akane' },
+    '2_s':  { hair:'#9ab0d0', hairHL:'#c0d4f0', hairStyle:'short_hat', eye:'#6080b0', skin:'#f0e0d8', ribbon:'#446088', name:'Rei' },
+    '2_l':  { hair:'#d8d0e8', hairHL:'#f0ecff', hairStyle:'short_straight', eye:'#9088b0', skin:'#f8f0f0', ribbon:'#886898', name:'Shiro' },
+    '1_mb': { hair:'#e06030', hairHL:'#ff9060', hairStyle:'short_straight', eye:'#c04020', skin:'#fde8d0', ribbon:'#aa2200', name:'Natsu' },
+    '2_mb': { hair:'#60a0e0', hairHL:'#90c8ff', hairStyle:'short_hat', eye:'#4080c0', skin:'#f0e8e0', ribbon:'#204880', name:'Aoi' },
+  };
+  return chars[`${side}_${vpos}`] || chars['1_ws'];
+}
+
+function drawAnimePlayer(ctx, s, ch, p) {
+  let f = p.facing;
+  let skin = ch.skin, hair = ch.hair, hairHL = ch.hairHL, eye = ch.eye;
+  let jacket = '#c01828', jacketDark = '#900010', white = '#f8f8f8';
+  let skirt = '#1a1a3a', sock = '#222230';
+  // Anime cel outline pass for stronger readability.
+  ctx.strokeStyle = 'rgba(20, 10, 30, 0.75)';
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // ── POSE SYSTEM ──
+  // Each state drives body part angles
+  let t = p.frame / 4 * Math.PI * 2;
+  let pose = { lLeg:0, rLeg:0, lArm:0, rArm:0, bodyTilt:0, legSpread:0 };
+
+  switch(p.state) {
+    case 'walk':
+      pose.lLeg  =  Math.sin(t) * 18;
+      pose.rLeg  = -Math.sin(t) * 18;
+      pose.lArm  = -Math.sin(t) * 22;
+      pose.rArm  =  Math.sin(t) * 22;
+      pose.bodyTilt = Math.sin(t) * 2;
+      break;
+    case 'jump':
+      // Tuck legs up, arms raised
+      pose.lLeg = -22; pose.rLeg = -22;
+      pose.lArm = -55; pose.rArm = -55;
+      pose.bodyTilt = -5;
+      break;
+    case 'spike':
+      // Wind-up then smash — frame 0-1 = wind up, 2+ = follow through
+      if (p.frame <= 1) {
+        pose.lArm = -70; pose.rArm = -80; pose.bodyTilt = -8; pose.lLeg=-10; pose.rLeg=-10;
+      } else {
+        pose.rArm = 60; pose.lArm = 20; pose.bodyTilt = 12; pose.lLeg=5; pose.rLeg=-5;
+      }
+      break;
+    case 'bump':
+      // Arms together low, lean forward
+      pose.lArm = 50; pose.rArm = 50; pose.bodyTilt = 15;
+      pose.lLeg = 12; pose.rLeg = -8;
+      break;
+    case 'set':
+      // Arms up and out, wrists raised
+      pose.lArm = -50; pose.rArm = -50; pose.bodyTilt = -5;
+      pose.lLeg = 8; pose.rLeg = -8;
+      break;
+    case 'dive':
+      pose.lLeg = 25; pose.rLeg = 18;
+      pose.lArm = 35; pose.rArm = 20;
+      pose.bodyTilt = 20;
+      break;
+    default: // idle
+      pose.lArm = 8; pose.rArm = -8;
+      pose.lLeg = 3; pose.rLeg = -3;
+      break;
+  }
+
+  // ── BODY TILT ──
+  if (pose.bodyTilt !== 0) ctx.rotate(pose.bodyTilt * Math.PI / 180);
+
+  let lsw = pose.lLeg, rsw = pose.rLeg;
+  let lasw = pose.lArm, rasw = pose.rArm;
+
+  // ── THIGHHIGHS / LEGS ──
+  // Socks
+  ctx.fillStyle = sock;
+  ctx.fillRect(s(-8), s(2), s(6), s(16));
+  ctx.fillRect(s(2), s(2), s(6), s(16));
+  // Shoes (at base of legs, static position)
+  ctx.fillStyle = '#1a1010';
+  ctx.beginPath();ctx.roundRect(s(-9),s(16),s(8),s(4),s(1));ctx.fill();
+  ctx.beginPath();ctx.roundRect(s(2),s(16),s(8),s(4),s(1));ctx.fill();
+
+  // ── SKIRT ──
+  ctx.fillStyle = skirt;
+  ctx.beginPath();
+  ctx.moveTo(s(-11), s(-8));ctx.lineTo(s(11), s(-8));
+  ctx.lineTo(s(14), s(4));ctx.lineTo(s(-14), s(4));ctx.closePath();ctx.fill();
+  // skirt pleats
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=s(0.8);
+  for(let px=-10;px<=10;px+=4){ctx.beginPath();ctx.moveTo(s(px),s(-8));ctx.lineTo(s(px*1.2),s(4));ctx.stroke();}
+
+  // ── BODY / JACKET ──
+  // White shirt visible at collar
+  ctx.fillStyle = white;
+  ctx.fillRect(s(-8), s(-26), s(16), s(4));
+  // Red jacket
+  ctx.fillStyle = jacket;
+  ctx.beginPath();ctx.roundRect(s(-10), s(-38), s(20), s(30), s(2));ctx.fill();
+  ctx.lineWidth = s(0.8); ctx.stroke();
+  // Jacket shading
+  ctx.fillStyle = jacketDark;
+  ctx.beginPath();ctx.roundRect(s(5), s(-37), s(5), s(28), s(1));ctx.fill();
+  // Jacket highlight
+  ctx.fillStyle='rgba(255,180,180,0.2)';
+  ctx.beginPath();ctx.roundRect(s(-9), s(-37), s(4), s(28), s(1));ctx.fill();
+  // Gold buttons
+  ctx.fillStyle='#d4a800';
+  for(let by=-32;by<=-10;by+=8){ctx.beginPath();ctx.arc(0,s(by),s(1.2),0,Math.PI*2);ctx.fill();}
+  // Collar/ribbon
+  ctx.fillStyle = ch.ribbon;
+  ctx.beginPath();ctx.moveTo(s(-4),s(-26));ctx.lineTo(s(4),s(-26));ctx.lineTo(s(2),s(-18));ctx.lineTo(s(-2),s(-18));ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.moveTo(s(-4),s(-26));ctx.lineTo(s(-1),s(-26));ctx.lineTo(s(-1),s(-18));ctx.lineTo(s(-2),s(-18));ctx.closePath();ctx.fill();
+
+  // ── ARMS ──
+  [[s(-11), lasw],[s(11), rasw]].forEach(([ax,ang])=>{
+    ctx.save();ctx.translate(ax,s(-34));ctx.rotate(ang*Math.PI/180);
+    ctx.fillStyle=jacket;ctx.beginPath();ctx.roundRect(s(-4),0,s(8),s(18),s(2));ctx.fill();
+    ctx.fillStyle=jacketDark;ctx.fillRect(s(2),0,s(2),s(18));
+    ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,s(17),s(3.5),s(4),0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  });
+
+  // ── NECK ──
+  ctx.fillStyle=skin;ctx.fillRect(s(-3.5),s(-42),s(7),s(6));
+
+  // ── HEAD ── anime proportions: large, slightly wide
+  ctx.fillStyle=skin;
+  ctx.beginPath();ctx.ellipse(s(f*0.5),s(-54),s(12),s(13),0,0,Math.PI*2);ctx.fill();
+  ctx.lineWidth = s(0.9); ctx.stroke();
+  // Jaw/chin
+  ctx.beginPath();ctx.ellipse(s(f),s(-43),s(7),s(5),0,0,Math.PI*2);ctx.fill();
+  // Face shading
+  ctx.fillStyle='rgba(220,160,140,0.15)';
+  ctx.beginPath();ctx.ellipse(s(f*4),s(-52),s(5),s(8),0.2,0,Math.PI*2);ctx.fill();
+
+  // ── EYES — big anime eyes ──
+  drawAnimeEyes(ctx, s, eye, f, skin);
+
+  // ── NOSE — tiny ──
+  ctx.strokeStyle='rgba(180,110,100,0.5)';ctx.lineWidth=s(0.8);
+  ctx.beginPath();ctx.moveTo(s(f*1.5),s(-46));ctx.lineTo(s(f*2.5),s(-44.5));ctx.stroke();
+
+  // ── MOUTH — small cute ──
+  ctx.strokeStyle='rgba(200,80,100,0.8)';ctx.lineWidth=s(1);
+  if(p.state==='spike'||p.state==='bump'){
+    // determined open mouth
+    ctx.beginPath();ctx.arc(s(f),s(-43),s(2.5),0,Math.PI);ctx.stroke();
+    ctx.fillStyle='rgba(180,60,80,0.6)';ctx.beginPath();ctx.arc(s(f),s(-43),s(2.5),0,Math.PI);ctx.fill();
+  } else {
+    ctx.beginPath();ctx.moveTo(s(f)-s(3),s(-43));
+    ctx.quadraticCurveTo(s(f),s(-41),s(f)+s(3),s(-43));ctx.stroke();
+  }
+
+  // ── BLUSH ──
+  ctx.globalAlpha=0.22;ctx.fillStyle='#ff8080';
+  ctx.beginPath();ctx.ellipse(s(f*7),s(-47),s(4.5),s(2.5),0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s(f*(-5)),s(-47),s(4.5),s(2.5),0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+
+  // ── HAIR ──
+  drawAnimeHair(ctx, s, ch, f, p);
+
+  // ── POSITION BADGE on skirt ──
+  let posLabel={ws:'WS',s:'S',l:'L'}[p.vpos||'ws']||'';
+  ctx.fillStyle='rgba(255,255,255,0.85)';ctx.font=`bold ${Math.max(5,s(7))}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText(posLabel,0,s(-2));
+}
+
+function drawAnimeEyes(ctx, s, eyeCol, f, skin) {
+  // Eye white
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.ellipse(s(f*4),s(-51),s(4.5),s(5.5),0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s(f*(-2.5)),s(-51.5),s(3.5),s(4.8),0,0,Math.PI*2);ctx.fill();
+  // Iris gradient
+  let ig1=ctx.createRadialGradient(s(f*4),s(-52),s(0.5),s(f*4),s(-51),s(3.5));
+  ig1.addColorStop(0,'#ffffff');ig1.addColorStop(0.3,eyeCol);ig1.addColorStop(1,shadeCol(eyeCol,-50));
+  ctx.fillStyle=ig1;
+  ctx.beginPath();ctx.ellipse(s(f*4),s(-51),s(3.5),s(4.5),0,0,Math.PI*2);ctx.fill();
+  let ig2=ctx.createRadialGradient(s(f*(-2.5)),s(-52),s(0.4),s(f*(-2.5)),s(-51.5),s(2.8));
+  ig2.addColorStop(0,'#ffffff');ig2.addColorStop(0.3,eyeCol);ig2.addColorStop(1,shadeCol(eyeCol,-50));
+  ctx.fillStyle=ig2;
+  ctx.beginPath();ctx.ellipse(s(f*(-2.5)),s(-51.5),s(2.8),s(3.8),0,0,Math.PI*2);ctx.fill();
+  // Pupil
+  ctx.fillStyle='#0a0820';
+  ctx.beginPath();ctx.arc(s(f*4),s(-51),s(2),0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(s(f*(-2.5)),s(-51.5),s(1.6),0,Math.PI*2);ctx.fill();
+  // Eye shine (multiple dots for anime look)
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath();ctx.ellipse(s(f*3),s(-53),s(1.2),s(1.8),0.3,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(s(f*5.2),s(-50),s(0.7),0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s(f*(-3.3)),s(-53.2),s(0.9),s(1.4),0.3,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(s(f*(-1.5)),s(-50.5),s(0.5),0,Math.PI*2);ctx.fill();
+  // Upper eyelash (thick curved line)
+  ctx.strokeStyle='#0a0820';ctx.lineWidth=s(1.8);
+  ctx.beginPath();ctx.moveTo(s(f*(-0.5)),s(-55.5));ctx.quadraticCurveTo(s(f*4),s(-57),s(f*8.5),s(-55));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s(f*(-5.5)),s(-55.5));ctx.quadraticCurveTo(s(f*(-2.5)),s(-57),s(f*0.5),s(-55));ctx.stroke();
+  // Lower lash subtle
+  ctx.lineWidth=s(0.8);ctx.strokeStyle='rgba(80,40,60,0.5)';
+  ctx.beginPath();ctx.moveTo(s(f*(-0.5)),s(-47));ctx.quadraticCurveTo(s(f*4),s(-46.5),s(f*8.5),s(-47));ctx.stroke();
+}
+
+function drawAnimeHair(ctx, s, ch, f, p) {
+  let hair=ch.hair, hl=ch.hairHL;
+  // Base hair cap
+  ctx.fillStyle=hair;
+  ctx.beginPath();ctx.ellipse(s(f*0.5),s(-60),s(13),s(10),0,0,Math.PI*2);ctx.fill();
+  // Forehead hair
+  ctx.beginPath();ctx.ellipse(s(f*1),s(-53),s(8),s(6),-0.1,0,Math.PI*2);ctx.fill();
+  // Hair highlight
+  ctx.fillStyle=hl;ctx.beginPath();ctx.ellipse(s(-2),s(-64),s(5),s(4),0.3,0,Math.PI*2);ctx.fill();
+
+  switch(ch.hairStyle){
+    case 'long_wavy': { // pink - long wavy sides
+      ctx.fillStyle=hair;
+      // Left side
+      ctx.beginPath();ctx.moveTo(s(-12),s(-62));ctx.bezierCurveTo(s(-18),s(-50),s(-16+Math.sin(p.hairWave)*4),s(-30),s(-14),s(-10));
+      ctx.bezierCurveTo(s(-10),s(-20),s(-8+Math.sin(p.hairWave+1)*3),s(-40),s(-9),s(-62));ctx.fill();
+      // Right flowing
+      ctx.beginPath();ctx.moveTo(s(10),s(-62));ctx.bezierCurveTo(s(16),s(-50),s(14+Math.sin(p.hairWave)*4),s(-20),s(10),s(10));
+      ctx.bezierCurveTo(s(7),s(-10),s(6+Math.sin(p.hairWave+0.5)*3),s(-38),s(8),s(-62));ctx.fill();
+      // Bangs
+      ctx.beginPath();ctx.moveTo(s(-12),s(-62));ctx.bezierCurveTo(s(-10),s(-54),s(-4),s(-50),s(0),s(-50));
+      ctx.bezierCurveTo(s(4),s(-50),s(10),s(-53),s(12),s(-62));ctx.fill();
+      break;
+    }
+    case 'long_straight': { // purple - long straight dark
+      ctx.fillStyle=hair;
+      ctx.beginPath();ctx.moveTo(s(-13),s(-64));ctx.bezierCurveTo(s(-15),s(-40),s(-13),s(-10),s(-12),s(20));
+      ctx.lineTo(s(-8),s(20));ctx.bezierCurveTo(s(-9),s(-10),s(-10),s(-40),s(-9),s(-62));ctx.fill();
+      ctx.beginPath();ctx.moveTo(s(11),s(-64));ctx.bezierCurveTo(s(14),s(-40),s(13),s(-10),s(12),s(20));
+      ctx.lineTo(s(8),s(20));ctx.bezierCurveTo(s(9),s(-10),s(10),s(-40),s(9),s(-62));ctx.fill();
+      // Side bang across face
+      ctx.beginPath();ctx.moveTo(s(-13),s(-62));ctx.bezierCurveTo(s(-8),s(-56),s(-2),s(-54),s(4),s(-52));
+      ctx.lineTo(s(3),s(-50));ctx.bezierCurveTo(s(-3),s(-52),s(-9),s(-54),s(-12),s(-60));ctx.fill();
+      break;
+    }
+    case 'high_pony': { // blonde - high ponytail
+      // Ponytail tie base
+      ctx.fillStyle='#cc8800';ctx.beginPath();ctx.arc(s(1),s(-68),s(4),0,Math.PI*2);ctx.fill();
+      // Ponytail
+      ctx.fillStyle=hair;
+      let wv=Math.sin(p.hairWave)*s(5);
+      ctx.beginPath();ctx.moveTo(s(-3),s(-68));ctx.bezierCurveTo(s(-6+wv),s(-55),s(-4+wv),s(-30),s(-2+wv),s(5));
+      ctx.bezierCurveTo(s(2+wv),s(-30),s(6+wv),s(-55),s(5),s(-68));ctx.fill();
+      // Side bangs
+      ctx.beginPath();ctx.moveTo(s(-13),s(-62));ctx.bezierCurveTo(s(-11),s(-55),s(-6),s(-52),s(-2),s(-52));
+      ctx.lineTo(s(-2),s(-49));ctx.bezierCurveTo(s(-7),s(-50),s(-12),s(-53),s(-12),s(-60));ctx.fill();
+      ctx.beginPath();ctx.moveTo(s(11),s(-62));ctx.bezierCurveTo(s(9),s(-56),s(4),s(-53),s(2),s(-53));
+      ctx.lineTo(s(2),s(-50));ctx.bezierCurveTo(s(5),s(-51),s(10),s(-54),s(10),s(-60));ctx.fill();
+      break;
+    }
+    case 'twin_tails': { // orange - twin tails
+      ctx.fillStyle=hair;
+      // Left tail
+      let wv2=Math.sin(p.hairWave)*s(4);
+      ctx.beginPath();ctx.moveTo(s(-12),s(-60));ctx.bezierCurveTo(s(-18),s(-52),s(-16+wv2),s(-30),s(-12+wv2),s(10));
+      ctx.bezierCurveTo(s(-8+wv2),s(-28),s(-10),s(-50),s(-8),s(-60));ctx.fill();
+      // Right tail
+      ctx.beginPath();ctx.moveTo(s(10),s(-60));ctx.bezierCurveTo(s(18),s(-52),s(16-wv2),s(-30),s(12-wv2),s(10));
+      ctx.bezierCurveTo(s(8-wv2),s(-28),s(10),s(-50),s(8),s(-60));ctx.fill();
+      // Hair ties
+      ctx.fillStyle='#ff4444';
+      ctx.beginPath();ctx.arc(s(-11),s(-60),s(2.5),0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(s(11),s(-60),s(2.5),0,Math.PI*2);ctx.fill();
+      // Bangs
+      ctx.fillStyle=hair;
+      ctx.beginPath();ctx.moveTo(s(-12),s(-62));ctx.bezierCurveTo(s(-8),s(-55),s(-2),s(-52),s(3),s(-51));
+      ctx.lineTo(s(2),s(-49));ctx.bezierCurveTo(s(-3),s(-50),s(-8),s(-53),s(-10),s(-60));ctx.fill();
+      break;
+    }
+    case 'short_hat': { // blue-grey - short with hat
+      ctx.fillStyle=hair;
+      // Short sides
+      ctx.beginPath();ctx.ellipse(s(-10),s(-58),s(5),s(8),0.2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(s(10),s(-58),s(5),s(8),-0.2,0,Math.PI*2);ctx.fill();
+      // Peaked hat
+      ctx.fillStyle='#1a2040';
+      ctx.beginPath();ctx.moveTo(s(-14),s(-64));ctx.lineTo(s(14),s(-64));ctx.lineTo(s(10),s(-66));ctx.lineTo(s(-10),s(-66));ctx.closePath();ctx.fill();
+      ctx.fillStyle='#2a3060';
+      ctx.beginPath();ctx.moveTo(s(-4),s(-66));ctx.lineTo(s(4),s(-66));ctx.lineTo(s(0),s(-76));ctx.closePath();ctx.fill();
+      ctx.fillStyle='#aa0000';ctx.fillRect(s(-14),s(-65),s(28),s(2));
+      // Hat brim
+      ctx.fillStyle='#1a2040';ctx.beginPath();ctx.roundRect(s(-15),s(-64),s(30),s(3),s(1));ctx.fill();
+      break;
+    }
+    case 'short_straight': { // silver/white - short neat
+      ctx.fillStyle=hair;
+      ctx.beginPath();ctx.ellipse(s(-9),s(-58),s(5),s(7),0.15,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(s(9),s(-58),s(5),s(7),-0.15,0,Math.PI*2);ctx.fill();
+      // Clean fringe
+      ctx.beginPath();ctx.moveTo(s(-13),s(-62));ctx.bezierCurveTo(s(-10),s(-56),s(-4),s(-53),s(0),s(-53));
+      ctx.bezierCurveTo(s(4),s(-53),ctx.s? s(10):s(10),s(-56),s(13),s(-62));ctx.fill();
+      break;
+    }
+  }
+  // Hair shadow
+  ctx.fillStyle='rgba(0,0,0,0.08)';
+  ctx.beginPath();ctx.ellipse(s(4),s(-56),s(6),s(5),0.2,0,Math.PI*2);ctx.fill();
+}
+
+function shadeCol(hex, amt) {
+  let r=parseInt(hex.slice(1,3),16)+amt, g=parseInt(hex.slice(3,5),16)+amt, b=parseInt(hex.slice(5,7),16)+amt;
+  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function drawParticles(){particles.forEach(p=>{ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;}
+</script>
+</body>
+</html>
